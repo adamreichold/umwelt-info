@@ -27,6 +27,7 @@ pub struct Source {
     pub r#type: Type,
     pub url: Url,
     pub concurrency: Option<usize>,
+    pub batch_size: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
