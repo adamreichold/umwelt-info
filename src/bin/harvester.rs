@@ -70,9 +70,13 @@ async fn main() -> Result<()> {
         tracing::error!("Failed to harvest {} out of {} sources", errors, count);
     }
 
-    rename(&datasets_path, &datasets_path_old).await?;
-    rename(&datasets_path_new, &datasets_path).await?;
-    remove_dir_all(&datasets_path_old).await?;
+    if datasets_path.exists() {
+        rename(&datasets_path, &datasets_path_old).await?;
+        rename(&datasets_path_new, &datasets_path).await?;
+        remove_dir_all(&datasets_path_old).await?;
+    } else {
+        rename(&datasets_path_new, &datasets_path).await?;
+    }
 
     Ok(())
 }
