@@ -34,9 +34,10 @@ async fn main() -> Result<(), Error> {
 
     let searcher = &*Box::leak(Box::new(Searcher::open(&data_path)?));
 
-    let dir = &*Box::leak(Box::new(
-        Dir::open_ambient_dir(data_path, ambient_authority())?.open_dir("datasets")?,
-    ));
+    let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
+        data_path,
+        ambient_authority(),
+    )?));
 
     let router = Router::new()
         .route("/search", get(search))
@@ -105,7 +106,7 @@ async fn search(
         for doc in docs {
             let (source, id) = doc?;
 
-            let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
+            let dataset = Dataset::read(dir.open_dir("datasets")?.open_dir(&source)?.open(&id)?)?;
 
             results.results.push(SearchResult {
                 source,
@@ -137,7 +138,7 @@ async fn dataset(
     Path((source, id)): Path<(String, String)>,
     Extension(dir): Extension<&'static Dir>,
 ) -> Result<Html<String>, ServerError> {
-    let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
+    let dataset = Dataset::read(dir.open_dir("datasets")?.open_dir(&source)?.open(&id)?)?;
 
     let page = DatasetPage {
         source,
