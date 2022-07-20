@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>umwelt.info: Search results</title>
+  </head>
+
+  <body>
+
+    <form method="GET">
+      <input name="query" type="text" value="{{ query }}" />
+      <input type="submit" value="Search" />
+    </form>
+
+    <h1>Found {{ count }} results.</h1>
+
+    {% for result in results %}
+
+    <div>
+      <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.title }}</a></h2>
+
+      <p>{{ result.description}}</p>
+    </div>
+
+    {% endfor %}
+
+  </body>
+</html>
