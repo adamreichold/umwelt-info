@@ -1,0 +1,9 @@
+[Unit]
+Description=umwelt.info harvester timer
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=default.target

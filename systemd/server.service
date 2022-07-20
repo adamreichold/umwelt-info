@@ -1,0 +1,19 @@
+[Unit]
+Description=umwelt.info server service
+
+[Service]
+User=umwelt-info
+Group=umwelt-info
+Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info BIND_ADDR=0.0.0.0:8080
+
+ExecStart=server
+Restart=always
+
+ProtectSystem=yes
+ProtectHome=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
