@@ -86,16 +86,16 @@ async fn fetch_dataset(
 }
 
 pub async fn harvest_search(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
-    const ROWS: usize = 100;
+    let rows = source.batch_size.unwrap_or(100);
 
-    let (count, results, errors) = fetch_datasets_search(dir, client, source, 0, ROWS).await?;
+    let (count, results, errors) = fetch_datasets_search(dir, client, source, 0, rows).await?;
     tracing::info!("Harvesting {} datasets", count);
 
-    let requests = (count + ROWS - 1) / ROWS;
-    let start = (1..requests).map(|request| request * ROWS);
+    let requests = (count + rows - 1) / rows;
+    let start = (1..requests).map(|request| request * rows);
 
     let (results, errors) = iter(start)
-        .map(|start| fetch_datasets_search(dir, client, source, start, ROWS))
+        .map(|start| fetch_datasets_search(dir, client, source, start, rows))
         .buffer_unordered(source.concurrency.unwrap_or(1))
         .fold(
             (results, errors),
