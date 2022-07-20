@@ -6,7 +6,7 @@ use askama::Template;
 use axum::{
     extract::{Extension, Path, Query},
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse, Redirect, Response},
     routing::get,
     Router, Server,
 };
@@ -40,6 +40,7 @@ async fn main() -> Result<(), Error> {
     )?));
 
     let router = Router::new()
+        .route("/", get(|| async { Redirect::permanent("/search") }))
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
         .layer(Extension(searcher))
