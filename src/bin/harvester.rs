@@ -89,7 +89,8 @@ async fn harvest(dir: &Dir, client: &Client, source: Source) -> Result<()> {
     let dir = dir.open_dir(&source.name)?;
 
     let res = match source.r#type {
-        Type::CKAN => ckan::harvest(&dir, client, &source).await,
+        Type::Ckan => ckan::harvest(&dir, client, &source).await,
+        Type::CkanSearch => ckan::harvest_search(&dir, client, &source).await,
     };
 
     res.with_context(move || format!("Failed to harvest source {}", source.name))
