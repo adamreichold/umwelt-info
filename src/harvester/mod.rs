@@ -35,6 +35,5 @@ pub struct Source {
 #[serde(rename_all = "snake_case")]
 pub enum Type {
     Ckan,
-    CkanSearch,
     Csw,
 }
