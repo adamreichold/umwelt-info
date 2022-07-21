@@ -28,8 +28,18 @@ pub struct Source {
     pub r#type: Type,
     url: Url,
     source_url: Option<Url>,
-    concurrency: Option<usize>,
-    batch_size: Option<usize>,
+    #[serde(default = "default_concurrency")]
+    concurrency: usize,
+    #[serde(default = "default_batch_size")]
+    batch_size: usize,
+}
+
+fn default_concurrency() -> usize {
+    1
+}
+
+fn default_batch_size() -> usize {
+    100
 }
 
 impl Source {
@@ -42,6 +52,5 @@ impl Source {
 #[serde(rename_all = "snake_case")]
 pub enum Type {
     Ckan,
-    CkanSearch,
     Csw,
 }

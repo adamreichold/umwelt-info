@@ -90,7 +90,6 @@ async fn harvest(dir: &Dir, client: &Client, source: Source) -> Result<()> {
 
     let res = match source.r#type {
         Type::Ckan => ckan::harvest(&dir, client, &source).await,
-        Type::CkanSearch => ckan::harvest_search(&dir, client, &source).await,
         Type::Csw => csw::harvest(&dir, client, &source).await,
     };
 

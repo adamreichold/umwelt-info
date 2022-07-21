@@ -9,8 +9,7 @@ use serde::Deserialize;
 use crate::{dataset::Dataset, harvester::Source};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
-    let concurrency = source.concurrency.unwrap_or(1);
-    let max_records = source.batch_size.unwrap_or(100);
+    let max_records = source.batch_size;
 
     let (count, results, errors) = fetch_datasets(dir, client, source, max_records, 1).await?;
     tracing::info!("Harvesting {} datasets", count);
@@ -20,7 +19,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
 
     let (results, errors) = iter(start_pos)
         .map(|start_pos| fetch_datasets(dir, client, source, max_records, start_pos))
-        .buffer_unordered(concurrency)
+        .buffer_unordered(source.concurrency)
         .fold(
             (results, errors),
             |(mut results, mut errors), res| async move {
