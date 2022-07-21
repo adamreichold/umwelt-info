@@ -1,5 +1,6 @@
 use anyhow::Result;
 use cap_std::{ambient_authority, fs::Dir};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer};
@@ -16,19 +17,27 @@ fn main() -> Result<()> {
 
     let dir = Dir::open_ambient_dir(data_path, ambient_authority())?;
 
-    for source in dir.read_dir("datasets")? {
-        let source = source?;
-        let source_id = source.file_name().into_string().unwrap();
+    dir.read_dir("datasets")?
+        .par_bridge()
+        .try_for_each(|source| -> Result<()> {
+            let source = source?;
+            let source_id = source.file_name().into_string().unwrap();
 
-        for dataset in source.open_dir()?.entries()? {
-            let dataset = dataset?;
-            let dataset_id = dataset.file_name().into_string().unwrap();
+            source
+                .open_dir()?
+                .entries()?
+                .par_bridge()
+                .try_for_each(|dataset| -> Result<()> {
+                    let dataset = dataset?;
+                    let dataset_id = dataset.file_name().into_string().unwrap();
 
-            let dataset = Dataset::read(dataset.open()?)?;
+                    let dataset = Dataset::read(dataset.open()?)?;
 
-            indexer.add_document(source_id.clone(), dataset_id, dataset)?;
-        }
-    }
+                    indexer.add_document(source_id.clone(), dataset_id, dataset)?;
+
+                    Ok(())
+                })
+        })?;
 
     indexer.commit()?;
 
