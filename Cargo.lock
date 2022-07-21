@@ -1781,6 +1781,7 @@ dependencies = [
  "cap-std",
  "futures-util",
  "quick-xml",
+ "rayon",
  "reqwest",
  "serde",
  "tantivy",
