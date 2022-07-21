@@ -2,7 +2,7 @@ use anyhow::Result;
 use cap_std::{ambient_authority, fs::Dir};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer, lock_data_path};
+use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer};
 
 fn main() -> Result<()> {
     tracing_subscriber::registry()
@@ -11,7 +11,6 @@ fn main() -> Result<()> {
         .init();
 
     let data_path = data_path_from_env();
-    let _data_path_lock = lock_data_path(&data_path)?;
 
     let indexer = Indexer::start(&data_path)?;
 
