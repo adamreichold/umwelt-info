@@ -1,4 +1,5 @@
 pub mod ckan;
+pub mod csw;
 
 use std::fs::read_to_string;
 use std::path::Path;
@@ -35,4 +36,5 @@ pub struct Source {
 pub enum Type {
     Ckan,
     CkanSearch,
+    Csw,
 }
