@@ -3,7 +3,6 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
 use serde::Deserialize;
-use uuid::Uuid;
 
 use crate::{dataset::Dataset, harvester::Source};
 
@@ -179,7 +178,7 @@ async fn write_dataset(dir: &Dir, source: &Source, package: Package) -> Result<(
             .join(&format!("dataset/{}", package.id))?,
     };
 
-    let file = dir.create(package.id.to_string())?;
+    let file = dir.create(package.id)?;
 
     dataset.write(file).await?;
 
@@ -215,7 +214,7 @@ struct PackageSearchResult {
 
 #[derive(Deserialize)]
 struct Package {
-    id: Uuid,
+    id: String,
     title: String,
     notes: Option<String>,
 }
