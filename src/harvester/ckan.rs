@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{dataset::Dataset, harvester::Source};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
-    let url = source.url.join("/api/3/action/package_list")?;
+    let url = source.url.join("api/3/action/package_list")?;
 
     let package_list = client
         .get(url)
@@ -60,7 +60,7 @@ async fn fetch_dataset(
 ) -> Result<()> {
     tracing::debug!("Fetching dataset {}", package_id);
 
-    let url = source.url.join("/api/3/action/package_show")?;
+    let url = source.url.join("api/3/action/package_show")?;
 
     let package_show = client
         .get(url)
@@ -86,6 +86,7 @@ async fn fetch_dataset(
 }
 
 pub async fn harvest_search(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
+    let concurrency = source.concurrency.unwrap_or(1);
     let rows = source.batch_size.unwrap_or(100);
 
     let (count, results, errors) = fetch_datasets_search(dir, client, source, 0, rows).await?;
@@ -96,7 +97,7 @@ pub async fn harvest_search(dir: &Dir, client: &Client, source: &Source) -> Resu
 
     let (results, errors) = iter(start)
         .map(|start| fetch_datasets_search(dir, client, source, start, rows))
-        .buffer_unordered(source.concurrency.unwrap_or(1))
+        .buffer_unordered(concurrency)
         .fold(
             (results, errors),
             |(mut results, mut errors), res| async move {
@@ -134,7 +135,7 @@ async fn fetch_datasets_search(
 ) -> Result<(usize, usize, usize)> {
     tracing::debug!("Fetching {} datasets starting at {}", rows, start);
 
-    let url = source.url.join("/api/3/action/package_search")?;
+    let url = source.url.join("api/3/action/package_search")?;
 
     let package_search = client
         .get(url)
@@ -173,7 +174,9 @@ async fn write_dataset(dir: &Dir, source: &Source, package: Package) -> Result<(
     let dataset = Dataset {
         title: package.title,
         description: package.notes.unwrap_or_default(),
-        source_url: source.url.join(&format!("/dataset/{}", package.id))?,
+        source_url: source
+            .source_url()
+            .join(&format!("dataset/{}", package.id))?,
     };
 
     let file = dir.create(package.id.to_string())?;
