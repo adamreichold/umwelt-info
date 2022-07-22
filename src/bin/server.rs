@@ -12,11 +12,14 @@ use axum::{
 };
 use cap_std::{ambient_authority, fs::Dir};
 use serde::Deserialize;
-use tokio::task::spawn_blocking;
+use tokio::{
+    task::{spawn, spawn_blocking},
+    time::{interval_at, Duration, Instant, MissedTickBehavior},
+};
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use umwelt_info::{data_path_from_env, dataset::Dataset, index::Searcher};
+use umwelt_info::{data_path_from_env, dataset::Dataset, index::Searcher, server::Stats};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -39,12 +42,17 @@ async fn main() -> Result<(), Error> {
         ambient_authority(),
     )?));
 
+    let stats = &*Box::leak(Box::new(Stats::read(dir)?));
+
+    spawn(write_stats(dir, stats));
+
     let router = Router::new()
         .route("/", get(|| async { Redirect::permanent("/search") }))
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
         .layer(Extension(searcher))
         .layer(Extension(dir))
+        .layer(Extension(stats))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
@@ -57,6 +65,24 @@ async fn main() -> Result<(), Error> {
         .await?;
 
     Ok(())
+}
+
+async fn write_stats(dir: &'static Dir, stats: &'static Stats) {
+    let mut interval = interval_at(
+        Instant::now() + Duration::from_secs(60),
+        Duration::from_secs(60),
+    );
+    interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
+    loop {
+        interval.tick().await;
+
+        spawn_blocking(move || {
+            if let Err(err) = stats.write(dir) {
+                tracing::warn!("Failed to write stats: {:#}", err);
+            }
+        });
+    }
 }
 
 #[derive(Deserialize)]
@@ -135,20 +161,25 @@ struct DatasetPage {
     source: String,
     id: String,
     dataset: Dataset,
+    accesses: u64,
 }
 
 async fn dataset(
     Path((source, id)): Path<(String, String)>,
     Extension(dir): Extension<&'static Dir>,
+    Extension(stats): Extension<&'static Stats>,
 ) -> Result<Html<String>, ServerError> {
     let dir = dir.open_dir("datasets")?;
 
     let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
 
+    let accesses = stats.record_access(&source, &id);
+
     let page = DatasetPage {
         source,
         id,
         dataset,
+        accesses,
     };
 
     let page = Html(page.render().unwrap());

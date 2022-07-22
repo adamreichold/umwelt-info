@@ -556,6 +556,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
+ "serde",
 ]
 
 [[package]]
@@ -1780,6 +1781,7 @@ dependencies = [
  "bincode",
  "cap-std",
  "futures-util",
+ "hashbrown",
  "quick-xml",
  "reqwest",
  "serde",
