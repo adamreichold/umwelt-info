@@ -5,9 +5,10 @@ use anyhow::Result;
 use tantivy::{
     collector::{Count, TopDocs},
     directory::MmapDirectory,
+    fastfield::FastFieldReader,
     query::QueryParser,
-    schema::{Field, Schema, Value, STORED, TEXT},
-    Document, Index, IndexReader, IndexWriter,
+    schema::{Field, Schema, Value, FAST, STORED, TEXT},
+    Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
 };
 
 use crate::dataset::Dataset;
@@ -20,6 +21,8 @@ fn schema() -> Schema {
 
     schema.add_text_field("title", TEXT);
     schema.add_text_field("description", TEXT);
+
+    schema.add_u64_field("accesses", FAST);
 
     schema.build()
 }
@@ -52,8 +55,24 @@ impl Searcher {
     ) -> Result<(usize, impl Iterator<Item = Result<(String, String)>> + '_)> {
         let query = self.parser.parse_query(query)?;
         let searcher = self.reader.searcher();
+        let accesses = self.fields.accesses;
 
-        let (count, docs) = searcher.search(&query, &(Count, TopDocs::with_limit(10)))?;
+        let (count, docs) = searcher.search(
+            &query,
+            &(
+                Count,
+                TopDocs::with_limit(10).tweak_score(move |reader: &SegmentReader| {
+                    let reader = reader.fast_fields().u64(accesses).unwrap();
+
+                    move |doc, score| {
+                        let accesses: u64 = reader.get(doc);
+                        let boost = ((2 + accesses) as Score).log2();
+
+                        boost * score
+                    }
+                }),
+            ),
+        )?;
 
         let iter = docs.into_iter().map(move |(_score, doc)| {
             let doc = searcher.doc(doc)?;
@@ -96,7 +115,13 @@ impl Indexer {
         Ok(Self { writer, fields })
     }
 
-    pub fn add_document(&self, source: String, id: String, dataset: Dataset) -> Result<()> {
+    pub fn add_document(
+        &self,
+        source: String,
+        id: String,
+        dataset: Dataset,
+        accesses: u64,
+    ) -> Result<()> {
         let mut doc = Document::default();
 
         doc.add_text(self.fields.source, source);
@@ -104,6 +129,8 @@ impl Indexer {
 
         doc.add_text(self.fields.title, dataset.title);
         doc.add_text(self.fields.description, dataset.description);
+
+        doc.add_u64(self.fields.accesses, accesses);
 
         self.writer.add_document(doc)?;
 
@@ -122,6 +149,7 @@ struct Fields {
     id: Field,
     title: Field,
     description: Field,
+    accesses: Field,
 }
 
 impl Fields {
@@ -132,11 +160,14 @@ impl Fields {
         let title = schema.get_field("title").unwrap();
         let description = schema.get_field("description").unwrap();
 
+        let accesses = schema.get_field("accesses").unwrap();
+
         Self {
             source,
             id,
             title,
             description,
+            accesses,
         }
     }
 }

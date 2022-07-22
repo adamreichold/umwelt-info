@@ -1,5 +1,6 @@
 use std::env::var;
 use std::net::SocketAddr;
+use std::sync::Mutex;
 
 use anyhow::Error;
 use askama::Template;
@@ -42,7 +43,7 @@ async fn main() -> Result<(), Error> {
         ambient_authority(),
     )?));
 
-    let stats = &*Box::leak(Box::new(Stats::read(dir)?));
+    let stats = &*Box::leak(Box::new(Mutex::new(Stats::read(dir)?)));
 
     spawn(write_stats(dir, stats));
 
@@ -67,7 +68,7 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn write_stats(dir: &'static Dir, stats: &'static Stats) {
+async fn write_stats(dir: &'static Dir, stats: &'static Mutex<Stats>) {
     let mut interval = interval_at(
         Instant::now() + Duration::from_secs(60),
         Duration::from_secs(60),
@@ -78,7 +79,7 @@ async fn write_stats(dir: &'static Dir, stats: &'static Stats) {
         interval.tick().await;
 
         spawn_blocking(move || {
-            if let Err(err) = stats.write(dir) {
+            if let Err(err) = Stats::write(stats, dir) {
                 tracing::warn!("Failed to write stats: {:#}", err);
             }
         });
@@ -167,13 +168,13 @@ struct DatasetPage {
 async fn dataset(
     Path((source, id)): Path<(String, String)>,
     Extension(dir): Extension<&'static Dir>,
-    Extension(stats): Extension<&'static Stats>,
+    Extension(stats): Extension<&'static Mutex<Stats>>,
 ) -> Result<Html<String>, ServerError> {
     let dir = dir.open_dir("datasets")?;
 
     let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
 
-    let accesses = stats.record_access(&source, &id);
+    let accesses = stats.lock().unwrap().record_access(&source, &id);
 
     let page = DatasetPage {
         source,
