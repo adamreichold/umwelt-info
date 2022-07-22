@@ -41,7 +41,12 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
         .await;
 
     if errors != 0 {
-        tracing::error!("Failed to harvest {} out of {} datasets", errors, results);
+        tracing::error!(
+            "Failed to harvest {} out of {} datasets ({} were transmitted)",
+            errors,
+            count,
+            results
+        );
     }
 
     Ok(())
