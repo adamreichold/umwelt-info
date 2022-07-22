@@ -3,7 +3,7 @@ use cap_std::{ambient_authority, fs::Dir};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer};
+use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer, server::Stats};
 
 fn main() -> Result<()> {
     tracing_subscriber::registry()
@@ -17,11 +17,15 @@ fn main() -> Result<()> {
 
     let dir = Dir::open_ambient_dir(data_path, ambient_authority())?;
 
+    let stats = Stats::read(&dir)?;
+
     dir.read_dir("datasets")?
         .par_bridge()
         .try_for_each(|source| -> Result<()> {
             let source = source?;
             let source_id = source.file_name().into_string().unwrap();
+
+            let accesses = stats.accesses.get(&source_id);
 
             source
                 .open_dir()?
@@ -33,7 +37,14 @@ fn main() -> Result<()> {
 
                     let dataset = Dataset::read(dataset.open()?)?;
 
-                    indexer.add_document(source_id.clone(), dataset_id, dataset)?;
+                    let accesses = accesses.and_then(|accesses| accesses.get(&dataset_id));
+
+                    indexer.add_document(
+                        source_id.clone(),
+                        dataset_id,
+                        dataset,
+                        *accesses.unwrap_or(&0),
+                    )?;
 
                     Ok(())
                 })
