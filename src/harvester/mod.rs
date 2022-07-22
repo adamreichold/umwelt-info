@@ -1,6 +1,7 @@
 pub mod ckan;
 pub mod csw;
 
+use std::fmt;
 use std::fs::read_to_string;
 use std::path::Path;
 
@@ -22,7 +23,7 @@ impl Config {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Source {
     pub name: String,
     pub r#type: Type,
@@ -45,6 +46,18 @@ fn default_batch_size() -> usize {
 impl Source {
     fn source_url(&self) -> &Url {
         self.source_url.as_ref().unwrap_or(&self.url)
+    }
+}
+
+impl fmt::Debug for Source {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Source")
+            .field("name", &self.name)
+            .field("type", &self.r#type)
+            .field("url", &self.url.as_str())
+            .field("concurrency", &self.concurrency)
+            .field("batch_size", &self.batch_size)
+            .finish()
     }
 }
 
