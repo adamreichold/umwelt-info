@@ -52,7 +52,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
     Ok(())
 }
 
-#[tracing::instrument(skip(dir, client))]
+#[tracing::instrument(skip(dir, client, source))]
 async fn fetch_datasets(
     dir: &Dir,
     client: &Client,
