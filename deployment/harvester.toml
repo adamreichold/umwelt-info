@@ -1,0 +1,18 @@
+[[sources]]
+name = "stadt-leipzig"
+type = "ckan"
+url = "https://opendata.leipzig.de/"
+concurrency = 3
+
+#[[sources]]
+#name = "geodatenkatalog"
+#type = "csw" # GeoNetwork
+#url = "http://gdk.gdi-de.org/gdi-de/srv/ger/csw"
+#source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
+#concurrency = 5
+
+[[sources]]
+name = "uba-gdi"
+type = "csw" # SmartFinder
+url = "https://gis.uba.de/smartfinder-csw/api/"
+source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
