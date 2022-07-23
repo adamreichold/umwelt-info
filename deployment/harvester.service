@@ -10,8 +10,11 @@ Type=oneshot
 ExecStart=harvester
 ExecStart=indexer
 
-ProtectSystem=yes
+ProtectSystem=strict
 ProtectHome=yes
+ReadWritePaths=/var/lib/umwelt-info
 PrivateDevices=yes
-NoNewPrivileges=yes
 PrivateTmp=yes
+PrivateUsers=yes
+NoNewPrivileges=yes
+SystemCallFilter=@system-service
