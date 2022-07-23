@@ -4,7 +4,10 @@ use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::{dataset::Dataset, harvester::Source};
+use crate::{
+    dataset::Dataset,
+    harvester::{with_retry, Source},
+};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
     let rows = source.batch_size;
@@ -62,29 +65,34 @@ async fn fetch_datasets(
 
     let url = source.url.join("api/3/action/package_search")?;
 
-    let package_search = client
-        .get(url)
-        .query(&[("start", start.to_string()), ("rows", rows.to_string())])
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<PackageSearch>()
-        .await?;
+    let response = with_retry(|| async {
+        let response = client
+            .get(url.clone())
+            .query(&[("start", start.to_string()), ("rows", rows.to_string())])
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<PackageSearch>()
+            .await?;
+
+        Ok(response)
+    })
+    .await?;
 
     ensure!(
-        package_search.success,
+        response.success,
         "Failed to fetch packages: {}",
-        package_search
+        response
             .error
             .as_ref()
             .map_or("Malformed response", |err| &err.message)
     );
 
-    let count = package_search.result.count;
-    let results = package_search.result.results.len();
+    let count = response.result.count;
+    let results = response.result.results.len();
     let mut errors = 0;
 
-    for package in package_search.result.results {
+    for package in response.result.results {
         if let Err(err) = write_dataset(dir, source, package).await {
             tracing::error!("{:#}", err);
 

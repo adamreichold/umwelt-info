@@ -4,12 +4,41 @@ pub mod wasser_de;
 
 use std::fmt;
 use std::fs::read_to_string;
+use std::future::Future;
 use std::path::Path;
 
 use anyhow::Result;
 use serde::Deserialize;
+use tokio::time::{sleep, Duration};
 use toml::from_str;
 use url::Url;
+
+async fn with_retry<A, F, T>(mut action: A) -> Result<T>
+where
+    A: FnMut() -> F,
+    F: Future<Output = Result<T>>,
+{
+    let mut attempts = 0;
+    let mut duration = Duration::from_secs(1);
+
+    loop {
+        match action().await {
+            Ok(val) => return Ok(val),
+            Err(err) => {
+                if attempts < 3 {
+                    tracing::warn!("Request failed but will be retried: {:#}", err);
+
+                    sleep(duration).await;
+
+                    attempts += 1;
+                    duration *= 10;
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -72,4 +101,58 @@ pub enum Type {
     Ckan,
     Csw,
     WasserDe,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use anyhow::anyhow;
+    use tokio::time::{pause, Instant};
+
+    #[tokio::test]
+    async fn with_retry_fowards_success() {
+        pause();
+        let start = Instant::now();
+
+        with_retry::<_, _, ()>(|| async { Ok(()) }).await.unwrap();
+
+        assert_eq!(start.elapsed().as_secs(), 0);
+    }
+
+    #[tokio::test]
+    async fn with_retry_fowards_failure() {
+        pause();
+        let start = Instant::now();
+
+        with_retry::<_, _, ()>(|| async { Err(anyhow!("failure")) })
+            .await
+            .unwrap_err();
+
+        assert_eq!(start.elapsed().as_secs(), 1 + 10 + 100);
+    }
+
+    #[tokio::test]
+    async fn with_retry_retries_three_times() {
+        pause();
+        let start = Instant::now();
+
+        let mut count = 0;
+
+        with_retry::<_, _, ()>(|| {
+            count += 1;
+
+            async move {
+                if count > 3 {
+                    Ok(())
+                } else {
+                    Err(anyhow!("failure"))
+                }
+            }
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(start.elapsed().as_secs(), 1 + 10 + 100);
+    }
 }
