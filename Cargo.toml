@@ -25,3 +25,6 @@ tower-http = { version = "0.3", features = ["trace"] }
 tracing = { version = "0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = { version = "2.2", features = ["serde"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["test-util"] }

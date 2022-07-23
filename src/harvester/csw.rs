@@ -6,7 +6,10 @@ use quick_xml::de::from_slice;
 use reqwest::{header::CONTENT_TYPE, Client};
 use serde::Deserialize;
 
-use crate::{dataset::Dataset, harvester::Source};
+use crate::{
+    dataset::Dataset,
+    harvester::{with_retry, Source},
+};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
     let max_records = source.batch_size;
@@ -73,17 +76,22 @@ async fn fetch_datasets(
     .render()
     .unwrap();
 
-    let response = client
-        .post(source.url.clone())
-        .header(CONTENT_TYPE, "application/xml")
-        .body(body)
-        .send()
-        .await?
-        .error_for_status()?;
+    let response = with_retry(|| async {
+        let body = client
+            .post(source.url.clone())
+            .header(CONTENT_TYPE, "application/xml")
+            .body(body.clone())
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
 
-    let body = response.bytes().await?;
+        let response: GetRecordsResponse = from_slice(&body)?;
 
-    let response: GetRecordsResponse = from_slice(&body)?;
+        Ok(response)
+    })
+    .await?;
 
     let count = response.results.num_records_matched;
     let results = response.results.num_records_returned;

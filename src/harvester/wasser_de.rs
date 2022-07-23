@@ -3,21 +3,29 @@ use cap_std::fs::Dir;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::{dataset::Dataset, harvester::Source};
+use crate::{
+    dataset::Dataset,
+    harvester::{with_retry, Source},
+};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
     let url = source
         .url
         .join("rest/BaseController/FilterElements/V_REP_BASE_VALID")?;
 
-    let response = client
-        .post(url)
-        .json(&Request { filter: Filter {} })
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<Response>()
-        .await?;
+    let response = with_retry(|| async {
+        let response = client
+            .post(url.clone())
+            .json(&Request { filter: Filter {} })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Response>()
+            .await?;
+
+        Ok(response)
+    })
+    .await?;
 
     tracing::info!("Retrieved {} documents", response.results.len());
 
@@ -39,15 +47,15 @@ async fn write_dataset(dir: &Dir, source: &Source, document: Document) -> Result
         }
     };
 
-    let teaser_text = document
+    let description = document
         .teaser_text
         .or(document.auto_teaser_text)
         .unwrap_or_default();
 
     let dataset = Dataset {
         title,
-        description: teaser_text,
-        source_url: source.url.clone(),
+        description,
+        source_url: source.url.as_str().to_owned(),
     };
 
     let file = dir.create(document.id.to_string())?;
