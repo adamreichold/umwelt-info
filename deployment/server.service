@@ -9,11 +9,14 @@ Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info BIND_ADDR=0.0.0.0:8080
 ExecStart=server
 Restart=always
 
-ProtectSystem=yes
+ProtectSystem=strict
 ProtectHome=yes
+ReadWritePaths=/var/lib/umwelt-info
 PrivateDevices=yes
-NoNewPrivileges=yes
 PrivateTmp=yes
+PrivateUsers=yes
+NoNewPrivileges=yes
+SystemCallFilter=@system-service
 
 [Install]
 WantedBy=default.target
