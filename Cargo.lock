@@ -1780,6 +1780,7 @@ dependencies = [
  "bincode",
  "cap-std",
  "futures-util",
+ "lz4_flex",
  "quick-xml",
  "rayon",
  "reqwest",
