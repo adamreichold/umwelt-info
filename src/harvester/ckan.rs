@@ -99,9 +99,7 @@ async fn write_dataset(dir: &Dir, source: &Source, package: Package) -> Result<(
     let dataset = Dataset {
         title: package.title,
         description: package.notes.unwrap_or_default(),
-        source_url: source
-            .source_url()
-            .join(&format!("dataset/{}", package.id))?,
+        source_url: source.source_url().replace("{{name}}", &package.name),
     };
 
     let file = dir.create(package.id)?;
@@ -127,6 +125,7 @@ struct PackageSearchResult {
 #[derive(Deserialize)]
 struct Package {
     id: String,
+    name: String,
     title: String,
     notes: Option<String>,
 }

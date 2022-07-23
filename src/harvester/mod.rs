@@ -29,7 +29,7 @@ pub struct Source {
     pub name: String,
     pub r#type: Type,
     url: Url,
-    source_url: Option<Url>,
+    source_url: Option<String>,
     #[serde(default = "default_concurrency")]
     concurrency: usize,
     #[serde(default = "default_batch_size")]
@@ -45,8 +45,10 @@ fn default_batch_size() -> usize {
 }
 
 impl Source {
-    fn source_url(&self) -> &Url {
-        self.source_url.as_ref().unwrap_or(&self.url)
+    pub fn source_url(&self) -> &str {
+        self.source_url
+            .as_deref()
+            .unwrap_or_else(|| self.url.as_str())
     }
 }
 
@@ -57,6 +59,7 @@ impl fmt::Debug for Source {
             .field("type", &self.r#type)
             // The default format of `Url` is too verbose for the logs.
             .field("url", &self.url.as_str())
+            .field("source_url", &self.source_url)
             .field("concurrency", &self.concurrency)
             .field("batch_size", &self.batch_size)
             .finish()

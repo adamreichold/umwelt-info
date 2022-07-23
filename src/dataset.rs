@@ -5,13 +5,12 @@ use bincode::{deserialize, serialize};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
-use url::Url;
 
 #[derive(Deserialize, Serialize)]
 pub struct Dataset {
     pub title: String,
     pub description: String,
-    pub source_url: Url,
+    pub source_url: String,
 }
 
 impl Dataset {

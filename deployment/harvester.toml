@@ -30,4 +30,3 @@ source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}
 name = "wasser-de"
 type = "wasser_de"
 url = "https://www.wasser-de.de/"
-
