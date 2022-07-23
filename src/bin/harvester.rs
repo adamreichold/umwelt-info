@@ -33,7 +33,6 @@ async fn main() -> Result<()> {
     let datasets_path_old = data_path.join("datasets.old");
 
     let _ = remove_dir_all(&datasets_path_new).await;
-    let _ = remove_dir_all(&datasets_path_old).await;
     create_dir(&datasets_path_new).await?;
 
     let dir = Arc::new(Dir::open_ambient_dir(
@@ -71,9 +70,9 @@ async fn main() -> Result<()> {
     drop(dir);
 
     if datasets_path.exists() {
+        let _ = remove_dir_all(&datasets_path_old).await;
         rename(&datasets_path, &datasets_path_old).await?;
         rename(&datasets_path_new, &datasets_path).await?;
-        remove_dir_all(&datasets_path_old).await?;
     } else {
         rename(&datasets_path_new, &datasets_path).await?;
     }
