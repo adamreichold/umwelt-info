@@ -11,6 +11,7 @@ use url::Url;
 pub struct Dataset {
     pub title: String,
     pub description: String,
+    pub license: License,
     pub source_url: Url,
 }
 
@@ -31,3 +32,9 @@ impl Dataset {
         Ok(())
     }
 }
+
+mod licenses {
+    include!(concat!(env!("OUT_DIR"), "/licenses.rs"));
+}
+
+pub use licenses::License;

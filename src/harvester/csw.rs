@@ -6,7 +6,10 @@ use quick_xml::de::from_slice;
 use reqwest::{header::CONTENT_TYPE, Client};
 use serde::Deserialize;
 
-use crate::{dataset::Dataset, harvester::Source};
+use crate::{
+    dataset::{Dataset, License},
+    harvester::Source,
+};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
     let max_records = source.batch_size;
@@ -104,6 +107,7 @@ async fn write_dataset(dir: &Dir, source: &Source, record: SummaryRecord) -> Res
     let dataset = Dataset {
         title: record.title,
         description: record.r#abstract,
+        license: License::Unknown,
         source_url: source.source_url().join(&record.identifier)?,
     };
 

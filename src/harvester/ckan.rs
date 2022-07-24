@@ -4,7 +4,10 @@ use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::{dataset::Dataset, harvester::Source};
+use crate::{
+    dataset::{Dataset, License},
+    harvester::Source,
+};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
     let rows = source.batch_size;
@@ -99,6 +102,9 @@ async fn write_dataset(dir: &Dir, source: &Source, package: Package) -> Result<(
     let dataset = Dataset {
         title: package.title,
         description: package.notes.unwrap_or_default(),
+        license: package
+            .license_id
+            .map_or(License::Unknown, |license_id| license_id.parse().unwrap()),
         source_url: source
             .source_url()
             .join(&format!("dataset/{}", package.id))?,
@@ -129,6 +135,7 @@ struct Package {
     id: String,
     title: String,
     notes: Option<String>,
+    license_id: Option<String>,
 }
 
 #[derive(Deserialize)]
