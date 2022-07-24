@@ -4,11 +4,11 @@ pub mod doris_bfs;
 pub mod wasser_de;
 
 use std::fmt;
-use std::fs::read_to_string;
 use std::future::Future;
-use std::path::Path;
+use std::io::Read;
 
 use anyhow::Result;
+use cap_std::fs::Dir;
 use serde::Deserialize;
 use tokio::time::{sleep, Duration};
 use toml::from_str;
@@ -47,8 +47,12 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read(path: impl AsRef<Path>) -> Result<Self> {
-        let val = from_str(&read_to_string(path)?)?;
+    pub fn read(dir: &Dir) -> Result<Self> {
+        let mut file = dir.open("harvester.toml")?;
+
+        let mut buf = String::new();
+        file.read_to_string(&mut buf)?;
+        let val = from_str(&buf)?;
 
         Ok(val)
     }

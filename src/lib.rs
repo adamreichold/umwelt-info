@@ -1,6 +1,7 @@
 pub mod dataset;
 pub mod harvester;
 pub mod index;
+pub mod metrics;
 pub mod server;
 
 use std::env::var_os;

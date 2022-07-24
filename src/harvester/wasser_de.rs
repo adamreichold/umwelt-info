@@ -8,7 +8,7 @@ use crate::{
     harvester::{with_retry, Source},
 };
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
+pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let url = source
         .url
         .join("rest/BaseController/FilterElements/V_REP_BASE_VALID")?;
@@ -27,15 +27,20 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
     })
     .await?;
 
-    tracing::info!("Retrieved {} documents", response.results.len());
+    let count = response.results.len();
+    tracing::info!("Retrieved {count} documents");
+
+    let mut errors = 0;
 
     for document in response.results {
         if let Err(err) = write_dataset(dir, source, document).await {
             tracing::error!("{:#}", err);
+
+            errors += 1;
         }
     }
 
-    Ok(())
+    Ok((count, count, errors))
 }
 
 async fn write_dataset(dir: &Dir, source: &Source, document: Document) -> Result<()> {

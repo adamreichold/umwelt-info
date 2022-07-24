@@ -23,6 +23,7 @@ reqwest = { version = "0.11", features = ["json"] }
 scraper = { version = "0.13", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 tantivy = "0.18"
+time = { version = "0.3", features = ["formatting", "macros"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "fs"] }
 toml = "0.5"
 tower = { version = "0.4", features = ["limit", "load-shed"] }
