@@ -1,5 +1,8 @@
 [Unit]
 Description=umwelt.info server service
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/lib/umwelt-info
 
 [Service]
 User=umwelt-info
