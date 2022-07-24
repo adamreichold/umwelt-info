@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use anyhow::{Context, Result};
 use cap_std::{ambient_authority, fs::Dir};
@@ -11,7 +12,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{
     data_path_from_env,
-    harvester::{ckan, csw, Config, Source, Type},
+    harvester::{ckan, csw, stats::Stats, Config, Source, Type},
 };
 
 #[tokio::main]
@@ -43,14 +44,18 @@ async fn main() -> Result<()> {
 
     let client = Client::new();
 
+    let stats = Arc::new(Stats::default());
+    let start = Instant::now();
+
     let tasks = config
         .sources
         .into_iter()
         .map(|source| {
             let dir = dir.clone();
             let client = client.clone();
+            let stats = stats.clone();
 
-            spawn(async move { harvest(&dir, &client, source).await })
+            spawn(async move { harvest(&dir, &client, &stats, source).await })
         })
         .collect::<Vec<_>>();
 
@@ -76,20 +81,34 @@ async fn main() -> Result<()> {
         rename(&datasets_path_new, &datasets_path).await?;
     }
 
+    let duration = start.elapsed();
+    Arc::try_unwrap(stats)
+        .unwrap()
+        .mail_summary(duration)
+        .await?;
+
     Ok(())
 }
 
 #[tracing::instrument(skip(dir, client))]
-async fn harvest(dir: &Dir, client: &Client, source: Source) -> Result<()> {
+async fn harvest(dir: &Dir, client: &Client, stats: &Stats, source: Source) -> Result<()> {
     tracing::debug!("Harvesting source {}", source.name);
 
     dir.create_dir(&source.name)?;
     let dir = dir.open_dir(&source.name)?;
+
+    let start = Instant::now();
 
     let res = match source.r#type {
         Type::Ckan => ckan::harvest(&dir, client, &source).await,
         Type::Csw => csw::harvest(&dir, client, &source).await,
     };
 
-    res.with_context(move || format!("Failed to harvest source {}", source.name))
+    let (count, transmitted, failed) =
+        res.with_context(|| format!("Failed to harvest source {}", &source.name))?;
+
+    let duration = start.elapsed();
+    stats.record_harvest(source.name, duration, count, transmitted, failed);
+
+    Ok(())
 }

@@ -1,5 +1,6 @@
 pub mod ckan;
 pub mod csw;
+pub mod stats;
 
 use std::fs::read_to_string;
 use std::path::Path;

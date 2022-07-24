@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{dataset::Dataset, harvester::Source};
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
+pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let rows = source.batch_size;
 
     let (count, results, errors) = fetch_datasets(dir, client, source, 0, rows).await?;
@@ -42,7 +42,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
         tracing::error!("Failed to harvest {} out of {} datasets", errors, results);
     }
 
-    Ok(())
+    Ok((count, results, errors))
 }
 
 #[tracing::instrument(skip(dir, client))]

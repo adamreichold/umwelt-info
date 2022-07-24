@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>umwelt.info: Zusammenfassung</title>s
+  </head>
+
+  <body>
+
+    <p>{{ sources.len() }} Quellen wurden bearbeitet.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Quelle</th><th>Dauer</th><th>Anzahl</th><th>Übertragen</th><th>Fehlgeschlagen</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for source in sources %}
+
+        <tr>
+          <td>{{ source.name }}</td><td>{{ source.duration|duration }}</td><td>{{ source.count }}</td><td>{{ source.transmitted }}</td><td>{{ source.failed }}</td>
+        </tr>
+
+        {% endfor %}
+
+        <tr>
+          <td><b>Summe</b></td><td><b>{{ duration|duration }}</b></td><td><b>{{ count }}</b></td><td><b>{{ transmitted }}</b></td><td><b>{{ failed }}</b></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+  </body>
+</html>
