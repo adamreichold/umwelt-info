@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::env::var;
 use std::net::SocketAddr;
 use std::sync::Mutex;
@@ -23,7 +24,13 @@ use tower::{
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use umwelt_info::{data_path_from_env, dataset::Dataset, index::Searcher, server::Stats};
+use umwelt_info::{
+    data_path_from_env,
+    dataset::Dataset,
+    index::Searcher,
+    metrics::{Harvest as HarvestMetrics, Metrics},
+    server::Stats,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -59,6 +66,7 @@ async fn main() -> Result<(), Error> {
         .route("/", get(|| async { Redirect::permanent("/search") }))
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
+        .route("/metrics", get(metrics))
         .layer(Extension(searcher))
         .layer(Extension(dir))
         .layer(Extension(stats));
@@ -163,7 +171,7 @@ async fn search(
         Ok(results)
     }
 
-    spawn_blocking(move || inner(params, searcher, dir))
+    spawn_blocking(|| inner(params, searcher, dir))
         .await
         .unwrap()
 }
@@ -200,6 +208,65 @@ async fn dataset(
     Ok(page)
 }
 
+#[derive(Template)]
+#[template(path = "metrics.html")]
+struct MetricsPage<'a> {
+    accesses: Vec<(&'a String, u64)>,
+    sum_accesses: u64,
+    harvests: Vec<(&'a String, &'a HarvestMetrics)>,
+    sum_count: usize,
+    sum_transmitted: usize,
+    sum_failed: usize,
+}
+
+async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>, ServerError> {
+    fn inner(dir: &Dir) -> Result<Html<String>, ServerError> {
+        let stats = Stats::read(dir)?;
+
+        let mut accesses = stats
+            .accesses
+            .iter()
+            .map(|(source_name, accesses)| (source_name, accesses.values().sum()))
+            .collect::<Vec<_>>();
+
+        accesses.sort_unstable_by_key(|(_, accesses)| Reverse(*accesses));
+
+        let sum_accesses = accesses.iter().map(|(_, accesses)| accesses).sum();
+
+        let metrics = Metrics::read(dir)?;
+
+        let mut harvests = metrics.harvests.iter().collect::<Vec<_>>();
+
+        harvests.sort_unstable_by_key(|(_, harvest)| Reverse(harvest.start));
+
+        let (sum_count, sum_transmitted, sum_failed) = metrics.harvests.values().fold(
+            (0, 0, 0),
+            |(sum_count, sum_transmitted, sum_failed), harvest| {
+                (
+                    sum_count + harvest.count,
+                    sum_transmitted + harvest.transmitted,
+                    sum_failed + harvest.failed,
+                )
+            },
+        );
+
+        let page = MetricsPage {
+            accesses,
+            sum_accesses,
+            harvests,
+            sum_count,
+            sum_transmitted,
+            sum_failed,
+        };
+
+        let page = Html(page.render().unwrap());
+
+        Ok(page)
+    }
+
+    spawn_blocking(|| inner(dir)).await.unwrap()
+}
+
 struct ServerError(Error);
 
 impl<E> From<E> for ServerError
@@ -214,5 +281,34 @@ where
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         (StatusCode::INTERNAL_SERVER_ERROR, self.0.to_string()).into_response()
+    }
+}
+
+mod filters {
+    use std::time::{Duration, SystemTime};
+
+    use askama::Result;
+    use time::{macros::format_description, OffsetDateTime};
+
+    pub fn system_time(val: &SystemTime) -> Result<String> {
+        let val = OffsetDateTime::from(*val)
+            .format(format_description!("[day].[month].[year] [hour]:[minute]"))
+            .unwrap();
+
+        Ok(val)
+    }
+
+    pub fn duration(val: &Duration) -> Result<String> {
+        let secs = val.as_secs();
+
+        let val = if secs > 3600 {
+            format!("{}h", secs / 3600)
+        } else if secs > 60 {
+            format!("{}min", secs / 60)
+        } else {
+            format!("{}s", secs)
+        };
+
+        Ok(val)
     }
 }

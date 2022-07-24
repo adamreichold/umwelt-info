@@ -11,7 +11,7 @@ use crate::{
     harvester::{with_retry, Source},
 };
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> {
+pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let rpp = source.batch_size;
 
     let (count, results, errors) = fetch_datasets(dir, client, source, rpp, 0).await?;
@@ -20,7 +20,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
     let requests = (count + rpp - 1) / rpp;
     let offset = (1..requests).map(|request| request * rpp);
 
-    let (_results, _errors) = iter(offset)
+    let (results, errors) = iter(offset)
         .map(|offset| fetch_datasets(dir, client, source, rpp, offset))
         .buffer_unordered(source.concurrency)
         .fold(
@@ -43,7 +43,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
         )
         .await;
 
-    Ok(())
+    Ok((count, results, errors))
 }
 
 #[tracing::instrument(skip(dir, client, source))]

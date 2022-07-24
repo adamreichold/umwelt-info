@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>umwelt.info: Metrics</title>
+  </head>
+
+  <body>
+
+    <h3>Accesses</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Source name</th><th>Accesses</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for (source_name, accesses) in accesses %}
+
+        <tr>
+          <td>{{ source_name }}</td><td>{{ accesses }}</td>
+        </tr>
+
+        {% endfor %}
+
+        <tr>
+          <td><b>Sum</b></td><td><b>{{ sum_accesses }}</b></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+
+    <h3>Harvests</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Source name</th><th>Start</th><th>Duration</th><th>Count</th><th>Tranmmitted</th><th>Errors</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for (source_name, harvest) in harvests %}
+
+        <tr>
+          <td>{{ source_name }}</td><td>{{ harvest.start|system_time }}</td><td>{{ harvest.duration|duration }}</td><td>{{ harvest.count }}</td><td>{{ harvest.transmitted }}</td><td>{{ harvest.failed }}</td>
+        </tr>
+
+        {% endfor %}
+
+        <tr>
+          <td><b>Sum</b></td><td></td><td></td><td><b>{{ sum_count }}</b></td><td><b>{{ sum_transmitted }}</b></td><td><b>{{ sum_failed }}</b></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+  </body>
+</html>
