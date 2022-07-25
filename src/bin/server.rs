@@ -13,6 +13,9 @@ use axum::{
 use cap_std::{ambient_authority, fs::Dir};
 use serde::Deserialize;
 use tokio::task::spawn_blocking;
+use tower::{
+    limit::GlobalConcurrencyLimitLayer, load_shed::LoadShedLayer, make::Shared, ServiceBuilder,
+};
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -32,6 +35,11 @@ async fn main() -> Result<(), Error> {
         .parse::<SocketAddr>()
         .expect("Environment variable BIND_ADDR invalid");
 
+    let request_limit = var("REQUEST_LIMIT")
+        .expect("Environment variable REQUEST_LIMIT not set")
+        .parse::<usize>()
+        .expect("Environment variable REQUEST_LIMIT invalid");
+
     let searcher = &*Box::leak(Box::new(Searcher::open(&data_path)?));
 
     let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
@@ -44,17 +52,21 @@ async fn main() -> Result<(), Error> {
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
         .layer(Extension(searcher))
-        .layer(Extension(dir))
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::default().include_headers(true)),
-        );
+        .layer(Extension(dir));
+
+    let make_service = Shared::new(
+        ServiceBuilder::new()
+            .layer(LoadShedLayer::new())
+            .layer(GlobalConcurrencyLimitLayer::new(request_limit))
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(DefaultMakeSpan::default().include_headers(true)),
+            )
+            .service(router),
+    );
 
     tracing::info!("Listening on {}", bind_addr);
-
-    Server::bind(&bind_addr)
-        .serve(router.into_make_service())
-        .await?;
+    Server::bind(&bind_addr).serve(make_service).await?;
 
     Ok(())
 }
