@@ -2,7 +2,16 @@
 name = "stadt-leipzig"
 type = "ckan"
 url = "https://opendata.leipzig.de/"
+source_url = "https://opendata.leipzig.de/dataset/{{name}}"
 concurrency = 3
+
+[[sources]]
+name = "govdata"
+type = "ckan"
+url = "https://www.govdata.de/ckan/"
+source_url = "https://www.govdata.de/web/guest/suchen/-/details/{{name}}"
+concurrency = 5
+batch_size = 1000
 
 #[[sources]]
 #name = "geodatenkatalog"
