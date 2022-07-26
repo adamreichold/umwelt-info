@@ -41,7 +41,9 @@ async fn main() -> Result<()> {
         ambient_authority(),
     )?);
 
-    let client = Client::new();
+    let client = Client::builder()
+        .user_agent("umwelt.info harvester")
+        .build()?;
 
     let tasks = config
         .sources
