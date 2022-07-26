@@ -68,6 +68,8 @@ async fn main() -> Result<()> {
         tracing::error!("Failed to harvest {} out of {} sources", errors, count);
     }
 
+    drop(dir);
+
     if datasets_path.exists() {
         rename(&datasets_path, &datasets_path_old).await?;
         rename(&datasets_path_new, &datasets_path).await?;
