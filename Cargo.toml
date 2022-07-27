@@ -1,6 +1,6 @@
 [package]
 name = "umwelt-info"
-authors = ["Adam Reichold <adam.reichold@uba.de>"]
+authors = ["Jakob Deller <jakob.deller@uba.de>", "Stefan Krämer <stefan.kraemer@uba.de>", "Adam Reichold <adam.reichold@uba.de>"]
 repository = "https://github.com/adamreichold/umwelt-info"
 license = "AGPL-3.0"
 publish = false
