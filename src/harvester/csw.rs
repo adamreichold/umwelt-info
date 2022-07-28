@@ -85,7 +85,7 @@ async fn fetch_datasets(
     .await?;
 
     let count = response.results.num_records_matched;
-    let results = response.results.num_records_returned;
+    let results = response.results.records.len();
     let mut errors = 0;
 
     for record in response.results.records {
@@ -130,8 +130,6 @@ struct GetRecordsResponse {
 struct SearchResults {
     #[serde(rename = "numberOfRecordsMatched")]
     num_records_matched: usize,
-    #[serde(rename = "numberOfRecordsReturned")]
-    num_records_returned: usize,
     #[serde(rename = "SummaryRecord")]
     records: Vec<SummaryRecord>,
 }

@@ -1,6 +1,7 @@
 pub mod ckan;
 pub mod csw;
 pub mod doris_bfs;
+pub mod geo_network_q;
 pub mod wasser_de;
 
 use std::fmt;
@@ -106,6 +107,7 @@ pub enum Type {
     Ckan,
     Csw,
     WasserDe,
+    GeoNetworkQ,
     DorisBfs,
 }
 

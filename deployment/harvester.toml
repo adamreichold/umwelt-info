@@ -15,7 +15,7 @@ batch_size = 1000
 
 #[[sources]]
 #name = "geodatenkatalog"
-#type = "csw"
+#type = "geo_network_q"
 #url = "http://gdk.gdi-de.org/gdi-de/srv/ger/csw"
 #source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
 #concurrency = 5
