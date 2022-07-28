@@ -2,7 +2,7 @@ use std::io::{BufReader, Write};
 use std::sync::Mutex;
 
 use anyhow::Result;
-use bincode::{deserialize_from, serialize};
+use bincode::config::{DefaultOptions, Options};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
@@ -14,8 +14,10 @@ pub struct Stats {
 
 impl Stats {
     pub fn read(dir: &Dir) -> Result<Self> {
-        let val = if let Ok(file) = dir.open("stats_v1") {
-            deserialize_from(BufReader::new(file))?
+        let val = if let Ok(file) = dir.open("stats") {
+            DefaultOptions::new()
+                .with_fixint_encoding()
+                .deserialize_from(BufReader::new(file))?
         } else {
             Default::default()
         };
@@ -24,11 +26,13 @@ impl Stats {
     }
 
     pub fn write(this: &Mutex<Self>, dir: &Dir) -> Result<()> {
-        let buf = serialize(&*this.lock().unwrap())?;
+        let buf = DefaultOptions::new()
+            .with_fixint_encoding()
+            .serialize(&*this.lock().unwrap())?;
 
-        let mut file = dir.create("stats_v1.new")?;
+        let mut file = dir.create("stats.new")?;
         file.write_all(&buf)?;
-        dir.rename("stats_v1.new", dir, "stats_v1")?;
+        dir.rename("stats.new", dir, "stats")?;
 
         Ok(())
     }
