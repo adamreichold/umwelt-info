@@ -6,22 +6,35 @@ use tantivy::{
     collector::{Count, TopDocs},
     directory::MmapDirectory,
     query::QueryParser,
-    schema::{Field, Schema, Value, STORED, TEXT},
+    schema::{Field, Schema, TextFieldIndexing, TextOptions, Value, STORED},
+    tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
     Document, Index, IndexReader, IndexWriter,
 };
 
 use crate::dataset::Dataset;
 
 fn schema() -> Schema {
+    let text = TextOptions::default()
+        .set_indexing_options(TextFieldIndexing::default().set_tokenizer("de_stem"));
+
     let mut schema = Schema::builder();
 
     schema.add_text_field("source", STORED);
     schema.add_text_field("id", STORED);
 
-    schema.add_text_field("title", TEXT);
-    schema.add_text_field("description", TEXT);
+    schema.add_text_field("title", text.clone());
+    schema.add_text_field("description", text);
 
     schema.build()
+}
+
+fn register_tokenizer(index: &Index) {
+    let de_stem = TextAnalyzer::from(SimpleTokenizer)
+        .filter(RemoveLongFilter::limit(40))
+        .filter(LowerCaser)
+        .filter(Stemmer::new(Language::German));
+
+    index.tokenizers().register("de_stem", de_stem);
 }
 
 pub struct Searcher {
@@ -33,6 +46,7 @@ pub struct Searcher {
 impl Searcher {
     pub fn open(data_path: &Path) -> Result<Self> {
         let index = Index::open_in_dir(data_path.join("index"))?;
+        register_tokenizer(&index);
 
         let fields = Fields::new(&index.schema());
 
@@ -89,6 +103,7 @@ impl Indexer {
         let fields = Fields::new(&schema);
 
         let index = Index::open_or_create(MmapDirectory::open(index_path)?, schema)?;
+        register_tokenizer(&index);
 
         let writer = index.writer(128 << 20)?;
         writer.delete_all_documents()?;
