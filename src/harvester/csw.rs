@@ -111,7 +111,7 @@ async fn write_dataset(dir: &Dir, source: &Source, record: SummaryRecord) -> Res
 }
 
 #[derive(Template)]
-#[template(path = "get_records.xml")]
+#[template(path = "csw_get_records.xml")]
 struct GetRecordsRequest {
     max_records: usize,
     start_pos: usize,
