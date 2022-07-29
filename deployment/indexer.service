@@ -1,0 +1,21 @@
+[Unit]
+Description=umwelt.info indexer service
+RequiresMountsFor=/var/lib/umwelt-info
+
+[Service]
+User=umwelt-info
+Group=umwelt-info
+Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info
+
+Type=oneshot
+ExecStart=indexer
+
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/umwelt-info
+PrivateDevices=yes
+PrivateTmp=yes
+PrivateUsers=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+SystemCallFilter=@system-service
