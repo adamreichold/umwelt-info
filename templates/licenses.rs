@@ -3,6 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
+use phf::{Map, phf_map};
 
 #[derive(PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
@@ -55,7 +56,11 @@ impl FromStr for License {
     type Err = Infallible;
 
     fn from_str(val: &str) -> Result<Self, Self::Err> {
-        let val = match val {
+        static SYNONYMS: Map<&'static str, &'static str> = phf_map! {
+            "dl-de-by-2.0" => "dl-by-de/2.0",
+        };
+
+        let val = match *SYNONYMS.get(val).unwrap_or(&val) {
             {% for license in licenses %}
 
             "{{ license.identifier }}" => Self::{{ license.identifier|ident }},
@@ -77,6 +82,11 @@ mod tests {
     fn parse_license_identifier() {
         assert_eq!(
             "dl-by-de/2.0".parse::<License>().unwrap(),
+            License::dl_by_de_2_0
+        );
+
+        assert_eq!(
+            "dl-de-by-2.0".parse::<License>().unwrap(),
             License::dl_by_de_2_0
         );
     }
