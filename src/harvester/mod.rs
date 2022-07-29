@@ -26,14 +26,14 @@ impl Config {
 pub struct Source {
     pub name: String,
     pub r#type: Type,
-    pub url: Url,
-    pub source_url: Option<Url>,
-    pub concurrency: Option<usize>,
-    pub batch_size: Option<usize>,
+    url: Url,
+    source_url: Option<Url>,
+    concurrency: Option<usize>,
+    batch_size: Option<usize>,
 }
 
 impl Source {
-    pub fn source_url(&self) -> &Url {
+    fn source_url(&self) -> &Url {
         self.source_url.as_ref().unwrap_or(&self.url)
     }
 }
