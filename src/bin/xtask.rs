@@ -15,37 +15,24 @@ fn main() -> Result<()> {
 }
 
 fn default() -> Result<()> {
-    let status = Command::new("cargo").arg("fmt").status()?;
+    cargo("Rustfmt", ["fmt"], [])?;
 
-    ensure!(status.success(), "Rustfmt failed with status {:?}", status);
+    cargo("Clippy", ["clippy", "--all-targets"], [])?;
 
-    let status = Command::new("cargo")
-        .args(["clippy", "--all-targets"])
-        .status()?;
-
-    ensure!(status.success(), "Clippy failed with status {:?}", status);
-
-    let status = Command::new("cargo").arg("test").status()?;
-
-    ensure!(status.success(), "Tests failed with status {:?}", status);
+    cargo("Tests", ["test"], [])?;
 
     Ok(())
 }
 
 fn harvester() -> Result<()> {
-    let status = Command::new("cargo")
-        .args(["run", "--bin", "harvester"])
-        .envs([
+    cargo(
+        "Harvester",
+        ["run", "--bin", "harvester"],
+        [
             ("DATA_PATH", "data"),
             ("RUST_LOG", "info,umwelt_info=debug,harvester=debug"),
-        ])
-        .status()?;
-
-    ensure!(
-        status.success(),
-        "Harvester failed with status {:?}",
-        status
-    );
+        ],
+    )?;
 
     indexer()?;
 
@@ -55,31 +42,41 @@ fn harvester() -> Result<()> {
 fn indexer() -> Result<()> {
     let _ = remove_dir_all("data/index");
 
-    let status = Command::new("cargo")
-        .args(["run", "--bin", "indexer"])
-        .envs([
+    cargo(
+        "Indexer",
+        ["run", "--bin", "indexer"],
+        [
             ("DATA_PATH", "data"),
             ("RUST_LOG", "info,umwelt_info=debug,indexer=debug"),
-        ])
-        .status()?;
-
-    ensure!(status.success(), "Indexer failed with status {:?}", status);
+        ],
+    )?;
 
     Ok(())
 }
 
 fn server() -> Result<()> {
-    let status = Command::new("cargo")
-        .args(["run", "--bin", "server"])
-        .envs([
+    cargo(
+        "Server",
+        ["run", "--bin", "server"],
+        [
             ("DATA_PATH", "data"),
             ("BIND_ADDR", "127.0.0.1:8081"),
             ("REQUEST_LIMIT", "32"),
             ("RUST_LOG", "info,umwelt_info=debug,server=debug"),
-        ])
-        .status()?;
+        ],
+    )?;
 
-    ensure!(status.success(), "Server failed with status {:?}", status);
+    Ok(())
+}
+
+fn cargo<'a, 'e, A, E>(name: &str, args: A, envs: E) -> Result<()>
+where
+    A: IntoIterator<Item = &'a str>,
+    E: IntoIterator<Item = (&'e str, &'e str)>,
+{
+    let status = Command::new("cargo").args(args).envs(envs).status()?;
+
+    ensure!(status.success(), "{name} failed with status {status:?}");
 
     Ok(())
 }
