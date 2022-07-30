@@ -15,6 +15,16 @@ use tokio::time::{sleep, Duration};
 use toml::from_str;
 use url::Url;
 
+use crate::dataset::Dataset;
+
+async fn write_dataset(dir: &Dir, id: String, dataset: Dataset) -> Result<()> {
+    let file = dir.create(id)?;
+
+    dataset.write(file).await?;
+
+    Ok(())
+}
+
 async fn with_retry<A, F, T>(mut action: A) -> Result<T>
 where
     A: FnMut() -> F,
