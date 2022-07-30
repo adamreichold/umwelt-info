@@ -8,7 +8,7 @@ use scraper::{Html, Selector};
 
 use crate::{
     dataset::Dataset,
-    harvester::{with_retry, Source},
+    harvester::{with_retry, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -155,11 +155,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         source_url: url.into(),
     };
 
-    let file = dir.create(identifier)?;
-
-    dataset.write(file).await?;
-
-    Ok(())
+    write_dataset(dir, identifier, dataset).await
 }
 
 fn parse_count(document: &Html) -> Result<usize> {

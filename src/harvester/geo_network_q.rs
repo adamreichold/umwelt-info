@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::{
     dataset::Dataset,
-    harvester::{with_retry, Source},
+    harvester::{with_retry, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -88,7 +88,7 @@ async fn fetch_datasets(
     let mut errors = 0;
 
     for entry in response.metadata {
-        if let Err(err) = write_dataset(dir, source, entry).await {
+        if let Err(err) = translate_dataset(dir, source, entry).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -98,7 +98,7 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn write_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Result<()> {
+async fn translate_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Result<()> {
     let identifier = entry.file_identifier.text;
 
     let identification = entry.identification_info.inner.identification();
@@ -111,11 +111,7 @@ async fn write_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Result<()
         source_url: source.source_url().replace("{{id}}", &identifier),
     };
 
-    let file = dir.create(identifier)?;
-
-    dataset.write(file).await?;
-
-    Ok(())
+    write_dataset(dir, identifier, dataset).await
 }
 
 #[derive(Debug, Deserialize)]
