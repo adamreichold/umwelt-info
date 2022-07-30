@@ -8,7 +8,11 @@
   <body>
 
     <form method="GET">
-      <input name="query" type="text" value="{{ query }}" />
+      <input name="query" type="text" value="{{ params.query }}" />
+
+      <input name="page" type="hidden" value="{{ params.page }}" />
+      <input name="results_per_page" type="hidden" value="{{ params.results_per_page }}" />
+
       <input type="submit" value="Search" />
     </form>
 
@@ -19,10 +23,24 @@
     <div>
       <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.title }}</a></h2>
 
-      <p>{{ result.description}}</p>
+      <p>{{ result.description }}</p>
     </div>
 
     {% endfor %}
+
+    <p>
+
+    {% for page in 1..=pages %}
+
+      {% if page==params.page %} <b> {% endif %}
+
+      <a href="?query={{ params.query|urlencode }}&page={{ page }}&results_per_page={{ params.results_per_page }}">{{ page }}</a>
+
+      {% if page==params.page %} </b> {% endif %}
+
+    {% endfor %}
+
+    </p>
 
   </body>
 </html>

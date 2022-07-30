@@ -81,6 +81,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "nom",
+ "percent-encoding",
  "proc-macro2",
  "quote",
  "syn",

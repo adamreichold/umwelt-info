@@ -110,17 +110,30 @@ async fn write_stats(dir: &'static Dir, stats: &'static Mutex<Stats>) {
 struct SearchParams {
     #[serde(default = "default_query")]
     query: String,
+    #[serde(default = "default_page")]
+    page: usize,
+    #[serde(default = "default_results_per_page")]
+    results_per_page: usize,
 }
 
 fn default_query() -> String {
     "*".to_owned()
 }
 
+fn default_page() -> usize {
+    1
+}
+
+fn default_results_per_page() -> usize {
+    10
+}
+
 #[derive(Template)]
 #[template(path = "search.html")]
 struct SearchResults {
-    query: String,
+    params: SearchParams,
     count: usize,
+    pages: usize,
     results: Vec<SearchResult>,
 }
 
@@ -141,13 +154,32 @@ async fn search(
         searcher: &Searcher,
         dir: &Dir,
     ) -> Result<Html<String>, ServerError> {
-        let (count, docs) = searcher.search(&params.query)?;
+        if params.page == 0 || params.results_per_page == 0 {
+            return Err(ServerError::BadRequest(
+                "Page and results per page must not be zero",
+            ));
+        }
+
+        if params.results_per_page > 100 {
+            return Err(ServerError::BadRequest(
+                "Results per page must not be larger than 100",
+            ));
+        }
+
+        let (count, docs) = searcher.search(
+            &params.query,
+            params.results_per_page,
+            (params.page - 1) * params.results_per_page,
+        )?;
 
         tracing::debug!("Found {} documents", count);
 
+        let pages = (count + params.results_per_page - 1) / params.results_per_page;
+
         let mut results = SearchResults {
-            query: params.query,
+            params,
             count,
+            pages,
             results: Vec::new(),
         };
 
@@ -267,20 +299,28 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
     spawn_blocking(|| inner(dir)).await.unwrap()
 }
 
-struct ServerError(Error);
+enum ServerError {
+    BadRequest(&'static str),
+    Internal(Error),
+}
 
 impl<E> From<E> for ServerError
 where
     Error: From<E>,
 {
     fn from(err: E) -> Self {
-        Self(Error::from(err))
+        Self::Internal(Error::from(err))
     }
 }
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, self.0.to_string()).into_response()
+        match self {
+            Self::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
+            Self::Internal(err) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
+            }
+        }
     }
 }
 

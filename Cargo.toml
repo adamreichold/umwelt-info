@@ -9,7 +9,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-askama = { version = "0.11", default-features = false }
+askama = { version = "0.11", default-features = false, features = ["urlencode"] }
 axum = { version = "0.5", default-features = false, features = ["http1", "query", "tower-log"] }
 bincode = "1.3"
 cap-std = "0.25"

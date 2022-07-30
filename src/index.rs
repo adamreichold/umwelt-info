@@ -71,6 +71,8 @@ impl Searcher {
     pub fn search(
         &self,
         query: &str,
+        limit: usize,
+        offset: usize,
     ) -> Result<(usize, impl Iterator<Item = Result<(String, String)>> + '_)> {
         let query = self.parser.parse_query(query)?;
         let searcher = self.reader.searcher();
@@ -80,16 +82,18 @@ impl Searcher {
             &query,
             &(
                 Count,
-                TopDocs::with_limit(10).tweak_score(move |reader: &SegmentReader| {
-                    let reader = reader.fast_fields().u64(accesses).unwrap();
+                TopDocs::with_limit(limit).and_offset(offset).tweak_score(
+                    move |reader: &SegmentReader| {
+                        let reader = reader.fast_fields().u64(accesses).unwrap();
 
-                    move |doc, score| {
-                        let accesses: u64 = reader.get(doc);
-                        let boost = ((2 + accesses) as Score).log2();
+                        move |doc, score| {
+                            let accesses: u64 = reader.get(doc);
+                            let boost = ((2 + accesses) as Score).log2();
 
-                        boost * score
-                    }
-                }),
+                            boost * score
+                        }
+                    },
+                ),
             ),
         )?;
 
