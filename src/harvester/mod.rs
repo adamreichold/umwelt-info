@@ -9,7 +9,7 @@ use std::future::Future;
 use std::io::Read;
 
 use anyhow::Result;
-use cap_std::fs::Dir;
+use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
 use serde::Deserialize;
 use tokio::time::{sleep, Duration};
 use toml::from_str;
@@ -18,7 +18,14 @@ use url::Url;
 use crate::dataset::Dataset;
 
 async fn write_dataset(dir: &Dir, id: String, dataset: Dataset) -> Result<()> {
-    let file = dir.create(id)?;
+    let file = match dir.open_with(&id, FsOpenOptions::new().write(true).create_new(true)) {
+        Ok(file) => file,
+        Err(_err) => {
+            let file = dir.create(&id)?;
+            tracing::warn!("Overwriting duplicate dataset {id}");
+            file
+        }
+    };
 
     dataset.write(file).await?;
 
