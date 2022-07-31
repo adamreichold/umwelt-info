@@ -6,7 +6,7 @@ use tantivy::{
     collector::{Count, TopDocs},
     directory::MmapDirectory,
     query::QueryParser,
-    schema::{Field, Schema, TextFieldIndexing, TextOptions, Value, STORED},
+    schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value, STORED},
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
     Document, Index, IndexReader, IndexWriter,
 };
@@ -14,8 +14,11 @@ use tantivy::{
 use crate::dataset::Dataset;
 
 fn schema() -> Schema {
-    let text = TextOptions::default()
-        .set_indexing_options(TextFieldIndexing::default().set_tokenizer("de_stem"));
+    let text = TextOptions::default().set_indexing_options(
+        TextFieldIndexing::default()
+            .set_index_option(IndexRecordOption::WithFreqsAndPositions)
+            .set_tokenizer("de_stem"),
+    );
 
     let mut schema = Schema::builder();
 
