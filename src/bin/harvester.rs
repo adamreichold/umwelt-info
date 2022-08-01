@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
 use cap_std::{ambient_authority, fs::Dir};
@@ -39,6 +39,7 @@ async fn main() -> Result<()> {
 
         let client = Client::builder()
             .user_agent("umwelt.info harvester")
+            .timeout(Duration::from_secs(300))
             .build()?;
 
         let tasks = config
