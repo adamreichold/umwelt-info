@@ -54,6 +54,7 @@ impl fmt::Debug for Source {
         fmt.debug_struct("Source")
             .field("name", &self.name)
             .field("type", &self.r#type)
+            // The default format of `Url` is too verbose for the logs.
             .field("url", &self.url.as_str())
             .field("concurrency", &self.concurrency)
             .field("batch_size", &self.batch_size)
