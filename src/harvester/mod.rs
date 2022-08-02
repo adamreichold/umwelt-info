@@ -1,5 +1,6 @@
 pub mod ckan;
 pub mod csw;
+pub mod wasser_de;
 
 use std::fmt;
 use std::fs::read_to_string;
@@ -66,4 +67,5 @@ impl fmt::Debug for Source {
 pub enum Type {
     Ckan,
     Csw,
+    WasserDe,
 }
