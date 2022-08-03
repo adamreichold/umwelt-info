@@ -25,3 +25,9 @@ name = "uba-gdi"
 type = "csw" # SmartFinder
 url = "https://gis.uba.de/smartfinder-csw/api/"
 source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
+
+[[sources]]
+name = "wasser-de"
+type = "wasser_de"
+url = "https://www.wasser-de.de/"
+
