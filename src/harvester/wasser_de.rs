@@ -19,7 +19,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
         .json::<Response>()
         .await?;
 
-    tracing::info!("Retrieved {} documents", response.results.len().to_string());
+    tracing::info!("Retrieved {} documents", response.results.len());
 
     for document in response.results {
         if let Err(err) = write_dataset(dir, source, document).await {
@@ -34,18 +34,19 @@ async fn write_dataset(dir: &Dir, source: &Source, document: Document) -> Result
     let title = match document.name {
         Some(name) => name,
         None => {
-            tracing::warn!("Document {} has no valid entry for 'NAME' ", document.id);
+            tracing::warn!("Document {} has no valid entry for 'NAME'", document.id);
             return Ok(());
         }
     };
 
-    let teaser = document
-        .teasertext
-        .unwrap_or(document.autoteasertext.unwrap_or("".to_string()));
+    let teaser_text = document
+        .teaser_text
+        .or(document.auto_teaser_text)
+        .unwrap_or_default();
 
     let dataset = Dataset {
         title,
-        description: teaser,
+        description: teaser_text,
         source_url: source.url.clone(),
     };
 
@@ -77,7 +78,7 @@ struct Document {
     #[serde(rename = "NAME")]
     name: Option<String>,
     #[serde(rename = "TEASERTEXT")]
-    teasertext: Option<String>,
+    teaser_text: Option<String>,
     #[serde(rename = "AUTOTEASERTEXT")]
-    autoteasertext: Option<String>,
+    auto_teaser_text: Option<String>,
 }
