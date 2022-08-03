@@ -35,3 +35,15 @@ url = { version = "2.2", features = ["serde"] }
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["test-util"] }
+
+[package.metadata.deb]
+maintainer-scripts = "deployment"
+assets = [
+    ["target/release/harvester", "usr/bin/", "755"],
+    ["target/release/indexer", "usr/bin/", "755"],
+    ["target/release/server", "usr/bin/", "755"],
+    ["deployment/harvester.service", "etc/systemd/system/", "644"],
+    ["deployment/harvester.timer", "etc/systemd/system/", "644"],
+    ["deployment/indexer.service", "etc/systemd/system/", "644"],
+    ["deployment/server.service", "etc/systemd/system/", "644"],
+]
