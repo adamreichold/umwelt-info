@@ -1,0 +1,20 @@
+#!/bin/sh
+
+USER=umwelt-info
+DATA_PATH=/var/lib/umwelt-info
+
+if [ ! -e $DATA_PATH ]; then
+  useradd --home-dir $DATA_PATH --create-home $USER
+else
+  mv $DATA_PATH/index $DATA_PATH/index.old
+fi
+
+systemctl start indexer.service
+
+systemctl restart server.service
+systemctl enable server.service
+
+rm -rf $DATA_PATH/index.old
+
+systemctl start harvester.timer
+systemctl enable harvester.timer
