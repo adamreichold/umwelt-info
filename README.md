@@ -1,5 +1,7 @@
 # umwelt.info metadata index
 
+[![CI](https://github.com/adamreichold/umwelt-info/actions/workflows/ci.yml/badge.svg)](https://github.com/adamreichold/umwelt-info/actions/workflows/ci.yml)
+
 This project is a prototype for a metadata index for the [umwelt.info project](https://umwelt.info). It aims for efficient operation by using the [Rust programming language](https://www.rust-lang.org/) and storing the datasets and a search index directly in the file system to avoid dependencies on additional services like databases or search engines. It does not aim to be abstract, generic, configurable or programmable, especially where that would conflict with efficiency.
 
 The system is implemented as three separate programs that access a common file system directory at `$DATA_PATH`.
@@ -26,7 +28,7 @@ To format, lint and test the code, run
 > cargo xtask
 ```
 
-[`deployment/harvester.toml`](deployment/harvester.toml) tracks all currently used sources. After creating a configuration like
+[`deployment/harvester.toml`](deployment/harvester.toml) tracks all relevant sources. Based on that, a configuration like
 
 ```toml
 [[sources]]
@@ -36,7 +38,7 @@ url = "https://gis.uba.de/smartfinder-csw/api/"
 source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
 ```
 
-at `data/harvester.toml` based on that, the harvester and indexer can be invoked by
+should be created at `data/harvester.toml`, so that the harvester and indexer can be invoked by
 
 ```console
 > cargo xtask harvester
