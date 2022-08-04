@@ -1,5 +1,6 @@
 pub mod ckan;
 pub mod csw;
+pub mod doris_bfs;
 pub mod wasser_de;
 
 use std::fmt;
@@ -101,6 +102,7 @@ pub enum Type {
     Ckan,
     Csw,
     WasserDe,
+    DorisBfs,
 }
 
 #[cfg(test)]

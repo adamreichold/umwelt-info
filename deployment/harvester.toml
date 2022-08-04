@@ -15,14 +15,14 @@ batch_size = 1000
 
 #[[sources]]
 #name = "geodatenkatalog"
-#type = "csw" # GeoNetwork
+#type = "csw"
 #url = "http://gdk.gdi-de.org/gdi-de/srv/ger/csw"
 #source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
 #concurrency = 5
 
 [[sources]]
 name = "uba-gdi"
-type = "csw" # SmartFinder
+type = "csw"
 url = "https://gis.uba.de/smartfinder-csw/api/"
 source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
 
@@ -30,3 +30,10 @@ source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}
 name = "wasser-de"
 type = "wasser_de"
 url = "https://www.wasser-de.de/"
+
+[[sources]]
+name = "doris-bfs"
+type = "doris_bfs"
+url = "https://doris.bfs.de/"
+batch_size = 10
+concurrency = 5
