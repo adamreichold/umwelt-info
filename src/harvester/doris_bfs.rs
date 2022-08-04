@@ -60,11 +60,7 @@ async fn fetch_datasets(
     let response = with_retry(|| async {
         let response = client
             .get(url.clone())
-            .query(&[
-                ("type", "title"),
-                ("rpp", &rpp.to_string()),
-                ("offset", &offset.to_string()),
-            ])
+            .query(&[("rpp", &rpp.to_string()), ("offset", &offset.to_string())])
             .send()
             .await?
             .error_for_status()?
@@ -225,7 +221,7 @@ impl Default for Selectors {
         Self {
             range_selector: Selector::parse("div.browse_range").unwrap(),
             range_regex: Regex::new(r#"Anzeige der Treffer (\d+) bis (\d+) von (\d+)"#).unwrap(),
-            handle_selector: Selector::parse("strong > a").unwrap(),
+            handle_selector: Selector::parse("td[headers=t2] > a").unwrap(),
             row_selector: Selector::parse("table.itemDisplayTable > tbody > tr").unwrap(),
             label_selector: Selector::parse("td.metadataFieldLabel").unwrap(),
             value_selector: Selector::parse("td.metadataFieldValue > span").unwrap(),
