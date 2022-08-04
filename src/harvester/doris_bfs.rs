@@ -85,6 +85,12 @@ async fn fetch_datasets(
         handles = parse_handles(&document)?;
     }
 
+    ensure!(
+        !handles.is_empty(),
+        "Could not parse handles at offset {}",
+        offset
+    );
+
     let results = handles.len();
     let mut errors = 0;
 
