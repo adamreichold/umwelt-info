@@ -1,14 +1,21 @@
 use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
+use parking_lot::Mutex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    dataset::Dataset,
+    dataset::{Dataset, License},
     harvester::{with_retry, write_dataset, Source},
+    metrics::Metrics,
 };
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
+pub async fn harvest(
+    dir: &Dir,
+    client: &Client,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+) -> Result<(usize, usize, usize)> {
     let url = source
         .url
         .join("rest/BaseController/FilterElements/V_REP_BASE_VALID")?;
@@ -33,7 +40,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let mut errors = 0;
 
     for document in response.results {
-        if let Err(err) = translate_dataset(dir, source, document).await {
+        if let Err(err) = translate_dataset(dir, metrics, source, document).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -43,7 +50,12 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     Ok((count, count, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Result<()> {
+async fn translate_dataset(
+    dir: &Dir,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+    document: Document,
+) -> Result<()> {
     let title = document
         .name
         .ok_or_else(|| anyhow!("Document {} has no valid entry for 'NAME'", document.id))?;
@@ -56,10 +68,11 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
     let dataset = Dataset {
         title,
         description,
+        license: License::Unknown,
         source_url: source.url.clone().into(),
     };
 
-    write_dataset(dir, document.id.to_string(), dataset).await
+    write_dataset(dir, metrics, document.id.to_string(), dataset).await
 }
 
 #[derive(Serialize)]

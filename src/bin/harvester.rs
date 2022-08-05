@@ -1,8 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
 use cap_std::{ambient_authority, fs::Dir};
+use parking_lot::Mutex;
 use reqwest::Client;
 use tokio::spawn;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -77,11 +78,7 @@ async fn main() -> Result<()> {
         dir.rename("datasets.new", &dir, "datasets")?;
     }
 
-    Arc::try_unwrap(metrics)
-        .unwrap()
-        .into_inner()
-        .unwrap()
-        .write(&dir)?;
+    Arc::try_unwrap(metrics).unwrap().into_inner().write(&dir)?;
 
     Ok(())
 }
@@ -101,11 +98,11 @@ async fn harvest(
     let start = SystemTime::now();
 
     let res = match source.r#type {
-        Type::Ckan => ckan::harvest(&dir, client, &source).await,
-        Type::Csw => csw::harvest(&dir, client, &source).await,
-        Type::WasserDe => wasser_de::harvest(&dir, client, &source).await,
-        Type::DorisBfs => doris_bfs::harvest(&dir, client, &source).await,
-        Type::GeoNetworkQ => geo_network_q::harvest(&dir, client, &source).await,
+        Type::Ckan => ckan::harvest(&dir, client, metrics, &source).await,
+        Type::Csw => csw::harvest(&dir, client, metrics, &source).await,
+        Type::WasserDe => wasser_de::harvest(&dir, client, metrics, &source).await,
+        Type::DorisBfs => doris_bfs::harvest(&dir, client, metrics, &source).await,
+        Type::GeoNetworkQ => geo_network_q::harvest(&dir, client, metrics, &source).await,
     };
 
     let (count, transmitted, failed) =
@@ -118,14 +115,9 @@ async fn harvest(
     }
 
     let duration = start.elapsed()?;
-    metrics.lock().unwrap().record_harvest(
-        source.name,
-        start,
-        duration,
-        count,
-        transmitted,
-        failed,
-    );
+    metrics
+        .lock()
+        .record_harvest(source.name, start, duration, count, transmitted, failed);
 
     Ok(())
 }

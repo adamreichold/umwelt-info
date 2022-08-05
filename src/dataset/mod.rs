@@ -1,3 +1,5 @@
+mod license;
+
 use std::io::Read;
 
 use anyhow::Result;
@@ -6,10 +8,13 @@ use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
+pub use license::License;
+
 #[derive(Deserialize, Serialize)]
 pub struct Dataset {
     pub title: String,
     pub description: String,
+    pub license: License,
     pub source_url: String,
 }
 

@@ -58,5 +58,24 @@
       </tbody>
     </table>
 
+
+    <h3>Licenses</h3>
+
+    <table>
+      <thead>
+        <th>License</th><th>Count</th>
+      </thead>
+
+      <tbody>
+        {% for (license, count) in licenses %}
+
+        <tr>
+          <td>{{ license }}</td><td>{{ count }}</td>
+        </tr>
+
+        {% endfor %}
+      </tbody>
+    </table>
+
   </body>
 </html>
