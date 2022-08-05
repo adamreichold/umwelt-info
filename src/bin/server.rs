@@ -249,6 +249,7 @@ struct MetricsPage<'a> {
     sum_count: usize,
     sum_transmitted: usize,
     sum_failed: usize,
+    licenses: Vec<(String, usize)>,
 }
 
 async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>, ServerError> {
@@ -282,6 +283,14 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
             },
         );
 
+        let mut licenses = metrics
+            .licenses
+            .iter()
+            .map(|(license, count)| (license.to_string(), *count))
+            .collect::<Vec<_>>();
+
+        licenses.sort_unstable_by_key(|(_, count)| Reverse(*count));
+
         let page = MetricsPage {
             accesses,
             sum_accesses,
@@ -289,6 +298,7 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
             sum_count,
             sum_transmitted,
             sum_failed,
+            licenses,
         };
 
         let page = Html(page.render().unwrap());

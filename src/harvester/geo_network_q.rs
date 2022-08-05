@@ -1,19 +1,27 @@
 use anyhow::Result;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
+use parking_lot::Mutex;
 use quick_xml::de::from_slice;
 use reqwest::Client;
 use serde::Deserialize;
 
 use crate::{
-    dataset::Dataset,
+    dataset::{Dataset, License},
     harvester::{with_retry, write_dataset, Source},
+    metrics::Metrics,
 };
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
+pub async fn harvest(
+    dir: &Dir,
+    client: &Client,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+) -> Result<(usize, usize, usize)> {
     let entries = source.batch_size;
 
-    let (count, results, errors) = fetch_datasets(dir, client, source, true, 1, entries).await?;
+    let (count, results, errors) =
+        fetch_datasets(dir, client, metrics, source, true, 1, entries).await?;
     tracing::info!("Harvesting {} datasets", count);
 
     let requests = (count + entries - 1) / entries;
@@ -21,7 +29,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let to = from.clone().map(|from| from + entries - 1);
 
     iter(from.zip(to))
-        .map(|(from, to)| fetch_datasets(dir, client, source, false, from, to))
+        .map(|(from, to)| fetch_datasets(dir, client, metrics, source, false, from, to))
         .buffer_unordered(source.concurrency)
         .fold(
             (results, errors),
@@ -46,10 +54,11 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     Ok((count, results, errors))
 }
 
-#[tracing::instrument(skip(dir, client, source))]
+#[tracing::instrument(skip(dir, client, metrics, source))]
 async fn fetch_datasets(
     dir: &Dir,
     client: &Client,
+    metrics: &Mutex<Metrics>,
     source: &Source,
     summary: bool,
     from: usize,
@@ -88,7 +97,7 @@ async fn fetch_datasets(
     let mut errors = 0;
 
     for entry in response.metadata {
-        if let Err(err) = translate_dataset(dir, source, entry).await {
+        if let Err(err) = translate_dataset(dir, metrics, source, entry).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -98,7 +107,12 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Result<()> {
+async fn translate_dataset(
+    dir: &Dir,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+    entry: Metadata,
+) -> Result<()> {
     let identifier = entry.file_identifier.text;
 
     let identification = entry.identification_info.inner.identification();
@@ -108,10 +122,11 @@ async fn translate_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Resul
     let dataset = Dataset {
         title,
         description,
+        license: License::Unknown,
         source_url: source.source_url().replace("{{id}}", &identifier),
     };
 
-    write_dataset(dir, identifier, dataset).await
+    write_dataset(dir, metrics, identifier, dataset).await
 }
 
 #[derive(Debug, Deserialize)]

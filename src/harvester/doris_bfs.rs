@@ -2,26 +2,33 @@ use anyhow::{anyhow, ensure, Result};
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 
 use crate::{
-    dataset::Dataset,
+    dataset::{Dataset, License},
     harvester::{with_retry, write_dataset, Source},
+    metrics::Metrics,
 };
 
-pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
+pub async fn harvest(
+    dir: &Dir,
+    client: &Client,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+) -> Result<(usize, usize, usize)> {
     let rpp = source.batch_size;
 
-    let (count, results, errors) = fetch_datasets(dir, client, source, rpp, 0).await?;
+    let (count, results, errors) = fetch_datasets(dir, client, metrics, source, rpp, 0).await?;
     tracing::info!("Harvesting {} datasets", count);
 
     let requests = (count + rpp - 1) / rpp;
     let offset = (1..requests).map(|request| request * rpp);
 
     let (results, errors) = iter(offset)
-        .map(|offset| fetch_datasets(dir, client, source, rpp, offset))
+        .map(|offset| fetch_datasets(dir, client, metrics, source, rpp, offset))
         .buffer_unordered(source.concurrency)
         .fold(
             (results, errors),
@@ -46,10 +53,11 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     Ok((count, results, errors))
 }
 
-#[tracing::instrument(skip(dir, client, source))]
+#[tracing::instrument(skip(dir, client, metrics, source))]
 async fn fetch_datasets(
     dir: &Dir,
     client: &Client,
+    metrics: &Mutex<Metrics>,
     source: &Source,
     rpp: usize,
     offset: usize,
@@ -92,7 +100,7 @@ async fn fetch_datasets(
     let mut errors = 0;
 
     for handle in &handles {
-        if let Err(err) = fetch_dataset(dir, client, source, handle).await {
+        if let Err(err) = fetch_dataset(dir, client, metrics, source, handle).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -102,7 +110,13 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str) -> Result<()> {
+async fn fetch_dataset(
+    dir: &Dir,
+    client: &Client,
+    metrics: &Mutex<Metrics>,
+    source: &Source,
+    handle: &str,
+) -> Result<()> {
     tracing::debug!("Fetching dataset at {}", handle);
 
     let url = source.url.join(handle)?;
@@ -152,10 +166,11 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
     let dataset = Dataset {
         title,
         description: r#abstract,
+        license: License::Unknown,
         source_url: url.into(),
     };
 
-    write_dataset(dir, identifier, dataset).await
+    write_dataset(dir, metrics, identifier, dataset).await
 }
 
 fn parse_count(document: &Html) -> Result<usize> {

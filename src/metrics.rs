@@ -7,9 +7,12 @@ use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 
+use crate::dataset::License;
+
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Metrics {
     pub harvests: HashMap<String, Harvest>,
+    pub licenses: HashMap<License, usize>,
 }
 
 impl Metrics {
@@ -52,6 +55,10 @@ impl Metrics {
                 failed,
             },
         );
+    }
+
+    pub fn record_license(&mut self, license: &License) {
+        *self.licenses.entry_ref(license).or_default() += 1;
     }
 }
 

@@ -2253,6 +2253,7 @@ dependencies = [
  "futures-util",
  "hashbrown",
  "once_cell",
+ "parking_lot",
  "quick-xml",
  "rayon",
  "regex",
