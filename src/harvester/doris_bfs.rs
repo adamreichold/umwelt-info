@@ -152,7 +152,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
     let dataset = Dataset {
         title,
         description: r#abstract,
-        source_url: url.as_str().to_owned(),
+        source_url: url.into(),
     };
 
     let file = dir.create(identifier)?;

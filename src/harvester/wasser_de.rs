@@ -51,7 +51,7 @@ async fn write_dataset(dir: &Dir, source: &Source, document: Document) -> Result
     let dataset = Dataset {
         title,
         description,
-        source_url: source.url.as_str().to_owned(),
+        source_url: source.url.clone().into(),
     };
 
     let file = dir.create(document.id.to_string())?;
