@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -39,13 +39,9 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
 }
 
 async fn write_dataset(dir: &Dir, source: &Source, document: Document) -> Result<()> {
-    let title = match document.name {
-        Some(name) => name,
-        None => {
-            tracing::warn!("Document {} has no valid entry for 'NAME'", document.id);
-            return Ok(());
-        }
-    };
+    let title = document
+        .name
+        .ok_or_else(|| anyhow!("Document {} has no valid entry for 'NAME'", document.id))?;
 
     let description = document
         .teaser_text
