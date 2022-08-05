@@ -15,6 +15,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<()> 
     let rpp = source.batch_size;
 
     let (count, results, errors) = fetch_datasets(dir, client, source, rpp, 0).await?;
+    tracing::info!("Harvesting {} datasets", count);
 
     let requests = (count + rpp - 1) / rpp;
     let offset = (1..requests).map(|request| request * rpp);
@@ -119,52 +120,42 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
     })
     .await?;
 
-    let mut urn = String::new();
-    let mut title = String::new();
-    let mut description = String::new();
+    let identifier;
+    let title;
+    let r#abstract;
 
     {
         let document = Html::parse_document(&response);
 
-        for element in document.select(&SELECTORS.row_selector) {
-            let label_element = match element.select(&SELECTORS.label_selector).next() {
-                Some(label_element) => label_element,
-                None => continue,
-            };
+        identifier = document
+            .select(&SELECTORS.identifier_selector)
+            .filter_map(|element| element.value().attr("content"))
+            .find(|identifier| identifier.starts_with("urn:"))
+            .ok_or_else(|| anyhow!("Missing identifier"))?
+            .to_owned();
 
-            let label = label_element.text().collect::<String>();
+        title = document
+            .select(&SELECTORS.title_selector)
+            .next()
+            .and_then(|element| element.value().attr("content"))
+            .ok_or_else(|| anyhow!("Missing title"))?
+            .to_owned();
 
-            let value_element = match element.select(&SELECTORS.value_selector).next() {
-                Some(value_element) => value_element,
-                None => continue,
-            };
-
-            let value = value_element.text().collect::<String>();
-
-            match label.trim() {
-                "URN(s):" => urn = value.trim().to_owned(),
-                "Titel:" => title = value.trim().to_owned(),
-                "Zusammenfassung:" => description = value.trim().to_owned(),
-                _ => (),
-            }
-        }
+        r#abstract = document
+            .select(&SELECTORS.abstract_selector)
+            .next()
+            .and_then(|element| element.value().attr("content"))
+            .unwrap_or_default()
+            .to_owned();
     }
-
-    ensure!(!urn.is_empty(), "Could not parse URN at handle {}", handle);
-
-    ensure!(
-        !title.is_empty(),
-        "Could not parse title at handle {}",
-        handle
-    );
 
     let dataset = Dataset {
         title,
-        description,
+        description: r#abstract,
         source_url: url.as_str().to_owned(),
     };
 
-    let file = dir.create(urn)?;
+    let file = dir.create(identifier)?;
 
     dataset.write(file).await?;
 
@@ -211,9 +202,9 @@ struct Selectors {
     range_selector: Selector,
     range_regex: Regex,
     handle_selector: Selector,
-    row_selector: Selector,
-    label_selector: Selector,
-    value_selector: Selector,
+    identifier_selector: Selector,
+    title_selector: Selector,
+    abstract_selector: Selector,
 }
 
 impl Default for Selectors {
@@ -222,9 +213,9 @@ impl Default for Selectors {
             range_selector: Selector::parse("div.browse_range").unwrap(),
             range_regex: Regex::new(r#"Anzeige der Treffer (\d+) bis (\d+) von (\d+)"#).unwrap(),
             handle_selector: Selector::parse("td[headers=t2] > a").unwrap(),
-            row_selector: Selector::parse("table.itemDisplayTable > tbody > tr").unwrap(),
-            label_selector: Selector::parse("td.metadataFieldLabel").unwrap(),
-            value_selector: Selector::parse("td.metadataFieldValue > span").unwrap(),
+            identifier_selector: Selector::parse(r#"head > meta[name="DC.identifier"]"#).unwrap(),
+            title_selector: Selector::parse(r#"head > meta[name="DC.title"]"#).unwrap(),
+            abstract_selector: Selector::parse(r#"head > meta[name="DCTERMS.abstract"]"#).unwrap(),
         }
     }
 }
