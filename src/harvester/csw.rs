@@ -112,10 +112,7 @@ async fn write_dataset(dir: &Dir, source: &Source, record: SummaryRecord) -> Res
     let dataset = Dataset {
         title: record.title,
         description: record.r#abstract,
-        source_url: source
-            .source_url()
-            .replace("{{id}}", &record.identifier)
-            .parse()?,
+        source_url: source.source_url().replace("{{id}}", &record.identifier),
     };
 
     let file = dir.create(record.identifier)?;
