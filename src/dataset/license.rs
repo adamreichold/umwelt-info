@@ -74,7 +74,7 @@ impl fmt::Display for License {
             Self::DlDeBy20 => "dl-by-de/2.0",
             Self::DlDeZero20 => "dl-zero-de/2.0",
             Self::Unknown => "unbekannt",
-            Self::Other(val) => return write!(fmt, "andere: {val}"),
+            Self::Other(val) => val,
         };
 
         fmt.write_str(val)
