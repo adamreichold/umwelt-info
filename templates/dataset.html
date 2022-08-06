@@ -11,6 +11,8 @@
 
     <p>{{ dataset.description }}</p>
 
+    <p>License: {% if let Some(license_url) = dataset.license.url() %} <a href="{{ license_url }}">{{ dataset.license }}</a> {% else %} {{ dataset.license }} {% endif %}</p>
+
     <p>Accessed {{ accesses }} times.</p>
 
   </body>

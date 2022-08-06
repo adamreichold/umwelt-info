@@ -8,8 +8,22 @@ use serde::{Deserialize, Serialize};
 pub enum License {
     DlDeBy20,
     DlDeZero20,
+    DorisBfs,
     Unknown,
     Other(String),
+}
+
+impl License {
+    pub fn url(&self) -> Option<&'static str> {
+        let val = match self {
+            Self::DlDeBy20 => "https://www.govdata.de/dl-de/by-2-0",
+            Self::DlDeZero20 => "https://www.govdata.de/dl-de/zero-2-0",
+            Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
+            Self::Unknown | Self::Other(_) => return None,
+        };
+
+        Some(val)
+    }
 }
 
 impl From<String> for License {
@@ -73,6 +87,7 @@ impl fmt::Display for License {
         let val = match self {
             Self::DlDeBy20 => "dl-by-de/2.0",
             Self::DlDeZero20 => "dl-zero-de/2.0",
+            Self::DorisBfs => "doris-bfs",
             Self::Unknown => "unbekannt",
             Self::Other(val) => val,
         };
