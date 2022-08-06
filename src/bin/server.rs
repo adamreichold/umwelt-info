@@ -26,7 +26,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{
     data_path_from_env,
-    dataset::Dataset,
+    dataset::{Dataset, License},
     index::Searcher,
     metrics::{Harvest as HarvestMetrics, Metrics},
     server::Stats,
@@ -250,6 +250,7 @@ struct MetricsPage<'a> {
     sum_transmitted: usize,
     sum_failed: usize,
     licenses: Vec<(String, usize)>,
+    sum_other: usize,
 }
 
 async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>, ServerError> {
@@ -291,6 +292,13 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
 
         licenses.sort_unstable_by_key(|(_, count)| Reverse(*count));
 
+        let sum_other = metrics
+            .licenses
+            .iter()
+            .filter(|(license, _)| matches!(license, License::Other(_)))
+            .map(|(_, count)| *count)
+            .sum();
+
         let page = MetricsPage {
             accesses,
             sum_accesses,
@@ -299,6 +307,7 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
             sum_transmitted,
             sum_failed,
             licenses,
+            sum_other,
         };
 
         let page = Html(page.render().unwrap());
