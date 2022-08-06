@@ -21,9 +21,9 @@
     {% for result in results %}
 
     <div>
-      <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.title }}</a></h2>
+      <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.dataset.title }}</a></h2>
 
-      <p>{{ result.description }}</p>
+      <p>{{ result.dataset.description }}</p>
     </div>
 
     {% endfor %}
