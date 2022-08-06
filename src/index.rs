@@ -26,7 +26,7 @@ fn schema() -> Schema {
 
     let mut schema = Schema::builder();
 
-    schema.add_text_field("source", STORED);
+    schema.add_text_field("source", STRING | STORED);
     schema.add_text_field("id", STORED);
 
     schema.add_text_field("title", text.clone());
