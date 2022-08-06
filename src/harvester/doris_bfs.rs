@@ -166,7 +166,7 @@ async fn fetch_dataset(
     let dataset = Dataset {
         title,
         description: r#abstract,
-        license: License::Unknown,
+        license: License::DorisBfs,
         source_url: url.into(),
     };
 
