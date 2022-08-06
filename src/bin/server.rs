@@ -1,19 +1,21 @@
 use std::cmp::Reverse;
+use std::convert::Infallible;
 use std::env::var;
 use std::net::SocketAddr;
-use std::sync::Mutex;
 
 use anyhow::Error;
 use askama::Template;
 use axum::{
-    extract::{Extension, Path, Query},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect, Response},
+    async_trait,
+    extract::{Extension, FromRequest, Path, Query, RequestParts},
+    http::{header::ACCEPT, StatusCode},
+    response::{Html, IntoResponse, Json, Redirect, Response},
     routing::get,
     Router, Server,
 };
 use cap_std::{ambient_authority, fs::Dir};
-use serde::Deserialize;
+use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
 use tokio::{
     task::{spawn, spawn_blocking},
     time::{interval_at, Duration, Instant, MissedTickBehavior},
@@ -102,11 +104,13 @@ async fn write_stats(dir: &'static Dir, stats: &'static Mutex<Stats>) {
             if let Err(err) = Stats::write(stats, dir) {
                 tracing::warn!("Failed to write stats: {:#}", err);
             }
-        });
+        })
+        .await
+        .unwrap();
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct SearchParams {
     #[serde(default = "default_query")]
     query: String,
@@ -128,32 +132,33 @@ fn default_results_per_page() -> usize {
     10
 }
 
-#[derive(Template)]
+#[derive(Template, Serialize)]
 #[template(path = "search.html")]
-struct SearchResults {
+struct SearchPage {
     params: SearchParams,
     count: usize,
     pages: usize,
     results: Vec<SearchResult>,
 }
 
+#[derive(Serialize)]
 struct SearchResult {
     source: String,
     id: String,
-    title: String,
-    description: String,
+    dataset: Dataset,
 }
 
 async fn search(
     Query(params): Query<SearchParams>,
+    accept: Accept,
     Extension(searcher): Extension<&'static Searcher>,
     Extension(dir): Extension<&'static Dir>,
-) -> Result<Html<String>, ServerError> {
+) -> Result<Response, ServerError> {
     fn inner(
         params: SearchParams,
         searcher: &Searcher,
         dir: &Dir,
-    ) -> Result<Html<String>, ServerError> {
+    ) -> Result<SearchPage, ServerError> {
         if params.page == 0 || params.results_per_page == 0 {
             return Err(ServerError::BadRequest(
                 "Page and results per page must not be zero",
@@ -176,7 +181,7 @@ async fn search(
 
         let pages = (count + params.results_per_page - 1) / params.results_per_page;
 
-        let mut results = SearchResults {
+        let mut page = SearchPage {
             params,
             count,
             pages,
@@ -190,25 +195,22 @@ async fn search(
 
             let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
 
-            results.results.push(SearchResult {
+            page.results.push(SearchResult {
                 source,
                 id,
-                title: dataset.title,
-                description: dataset.description,
+                dataset,
             });
         }
 
-        let results = Html(results.render().unwrap());
-
-        Ok(results)
+        Ok(page)
     }
 
-    spawn_blocking(|| inner(params, searcher, dir))
-        .await
-        .unwrap()
+    let page = spawn_blocking(|| inner(params, searcher, dir)).await??;
+
+    Ok(accept.into_repsonse(page))
 }
 
-#[derive(Template)]
+#[derive(Template, Serialize)]
 #[template(path = "dataset.html")]
 struct DatasetPage {
     source: String,
@@ -219,25 +221,35 @@ struct DatasetPage {
 
 async fn dataset(
     Path((source, id)): Path<(String, String)>,
+    accept: Accept,
     Extension(dir): Extension<&'static Dir>,
     Extension(stats): Extension<&'static Mutex<Stats>>,
-) -> Result<Html<String>, ServerError> {
-    let dir = dir.open_dir("datasets")?;
+) -> Result<Response, ServerError> {
+    fn inner(
+        source: String,
+        id: String,
+        dir: &Dir,
+        stats: &Mutex<Stats>,
+    ) -> Result<DatasetPage, ServerError> {
+        let dir = dir.open_dir("datasets")?;
 
-    let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
+        let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
 
-    let accesses = stats.lock().unwrap().record_access(&source, &id);
+        let accesses = stats.lock().record_access(&source, &id);
 
-    let page = DatasetPage {
-        source,
-        id,
-        dataset,
-        accesses,
-    };
+        let page = DatasetPage {
+            source,
+            id,
+            dataset,
+            accesses,
+        };
 
-    let page = Html(page.render().unwrap());
+        Ok(page)
+    }
 
-    Ok(page)
+    let page = inner(source, id, dir, stats)?;
+
+    Ok(accept.into_repsonse(page))
 }
 
 #[derive(Template)]
@@ -315,7 +327,50 @@ async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>
         Ok(page)
     }
 
-    spawn_blocking(|| inner(dir)).await.unwrap()
+    spawn_blocking(|| inner(dir)).await?
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Accept {
+    Unspecified,
+    Html,
+    Json,
+}
+
+impl Accept {
+    fn into_repsonse<P>(self, page: P) -> Response
+    where
+        P: Template + Serialize,
+    {
+        match self {
+            Accept::Unspecified | Accept::Html => Html(page.render().unwrap()).into_response(),
+            Accept::Json => Json(page).into_response(),
+        }
+    }
+}
+
+#[async_trait]
+impl<B> FromRequest<B> for Accept
+where
+    B: Send,
+{
+    type Rejection = Infallible;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        if let Some(accept) = req
+            .headers()
+            .get(ACCEPT)
+            .and_then(|header| header.to_str().ok())
+        {
+            if accept.contains("text/html") {
+                return Ok(Self::Html);
+            } else if accept.contains("application/json") {
+                return Ok(Self::Json);
+            }
+        }
+
+        Ok(Self::Unspecified)
+    }
 }
 
 enum ServerError {

@@ -1,10 +1,10 @@
 use std::io::{BufReader, Write};
-use std::sync::Mutex;
 
 use anyhow::Result;
 use bincode::config::{DefaultOptions, Options};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Clone, Deserialize, Serialize)]
@@ -28,7 +28,7 @@ impl Stats {
     pub fn write(this: &Mutex<Self>, dir: &Dir) -> Result<()> {
         let buf = DefaultOptions::new()
             .with_fixint_encoding()
-            .serialize(&*this.lock().unwrap())?;
+            .serialize(&*this.lock())?;
 
         let mut file = dir.create("stats.new")?;
         file.write_all(&buf)?;
