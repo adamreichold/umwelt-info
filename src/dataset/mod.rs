@@ -2,7 +2,7 @@ mod license;
 
 use std::io::Read;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bincode::{deserialize, serialize};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,9 @@ impl Dataset {
         let val = match deserialize::<Dataset>(&buf) {
             Ok(val) => val,
             Err(err) => {
-                let old_val = deserialize::<OldDataset>(&buf).map_err(|_old_err| err)?;
+                let old_val = deserialize::<OldDataset>(&buf)
+                    .map_err(|_old_err| err)
+                    .context("Failed to deserialize dataset")?;
 
                 Dataset {
                     title: old_val.title,
@@ -48,9 +50,10 @@ impl Dataset {
     }
 
     pub async fn write(&self, file: File) -> Result<()> {
-        let mut file = AsyncFile::from_std(file.into_std());
+        let buf = serialize(self)?;
 
-        file.write_all(&serialize(self)?).await?;
+        let mut file = AsyncFile::from_std(file.into_std());
+        file.write_all(&buf).await?;
 
         Ok(())
     }
