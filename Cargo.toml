@@ -23,7 +23,7 @@ regex = "1.6"
 reqwest = { version = "0.11", features = ["json"] }
 scraper = { version = "0.13", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
-tantivy = "0.18"
+tantivy = { version = "0.18", default-features = false, features = ["mmap"] }
 time = { version = "0.3", features = ["formatting", "macros"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "fs", "parking_lot"] }
 toml = "0.5"

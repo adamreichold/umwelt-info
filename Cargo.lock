@@ -923,12 +923,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lz4_flex"
-version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c038063f7a78126c539d666a0323a2032de5e7366012cd14a6eafc5ba290bbd6"
-
-[[package]]
 name = "mac"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1900,7 +1894,6 @@ dependencies = [
  "levenshtein_automata",
  "log",
  "lru",
- "lz4_flex",
  "measure_time",
  "memmap2",
  "murmurhash32",
