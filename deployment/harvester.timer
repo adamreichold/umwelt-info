@@ -3,6 +3,7 @@ Description=umwelt.info harvester timer
 
 [Timer]
 OnCalendar=daily
+RandomizedDelaySec=7200
 Persistent=true
 
 [Install]
