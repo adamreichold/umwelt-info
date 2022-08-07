@@ -1,0 +1,10 @@
+[Unit]
+Description=umwelt.info harvester timer
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=7200
+Persistent=true
+
+[Install]
+WantedBy=default.target
