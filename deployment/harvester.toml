@@ -16,14 +16,14 @@ batch_size = 1000
 #[[sources]]
 #name = "geodatenkatalog"
 #type = "geo_network_q"
-#url = "http://gdk.gdi-de.org/gdi-de/srv/ger/csw"
+#url = "http://gdk.gdi-de.org/gdi-de/srv/ger/q"
 #source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
 #concurrency = 5
 
 [[sources]]
 name = "uba-gdi"
 type = "csw"
-url = "https://gis.uba.de/smartfinder-csw/api/"
+url = "https://gis.uba.de/smartfinder-csw/api"
 source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
 
 [[sources]]
