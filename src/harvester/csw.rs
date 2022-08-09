@@ -2,9 +2,9 @@ use anyhow::Result;
 use askama::Template;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use quick_xml::de::from_slice;
 use reqwest::{header::CONTENT_TYPE, Client};
 use serde::Deserialize;
+use serde_xml_rs::from_str;
 
 use crate::{
     dataset::{Dataset, License},
@@ -75,10 +75,10 @@ async fn fetch_datasets(
             .send()
             .await?
             .error_for_status()?
-            .bytes()
+            .text()
             .await?;
 
-        let response: GetRecordsResponse = from_slice(&body)?;
+        let response: GetRecordsResponse = from_str(&body)?;
 
         Ok(response)
     })
@@ -99,15 +99,21 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, record: SummaryRecord) -> Result<()> {
+pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Result<()> {
+    let identifier = record.file_identifier.text;
+
+    let identification = record.identification_info.identification();
+    let title = identification.citation.inner.title.text;
+    let description = identification.r#abstract.text.unwrap_or_default();
+
     let dataset = Dataset {
-        title: record.title,
-        description: record.r#abstract,
+        title,
+        description,
         license: License::Unknown,
-        source_url: source.source_url().replace("{{id}}", &record.identifier),
+        source_url: source.source_url().replace("{{id}}", &identifier),
     };
 
-    write_dataset(dir, record.identifier, dataset).await
+    write_dataset(dir, identifier, dataset).await
 }
 
 #[derive(Template)]
@@ -127,13 +133,66 @@ struct GetRecordsResponse {
 struct SearchResults {
     #[serde(rename = "numberOfRecordsMatched")]
     num_records_matched: usize,
-    #[serde(rename = "SummaryRecord")]
-    records: Vec<SummaryRecord>,
+    #[serde(rename = "MD_Metadata")]
+    records: Vec<Record>,
 }
 
 #[derive(Debug, Deserialize)]
-struct SummaryRecord {
-    identifier: String,
-    title: String,
-    r#abstract: String,
+pub struct Record {
+    #[serde(rename = "fileIdentifier")]
+    file_identifier: FileIdentifier,
+    #[serde(rename = "identificationInfo")]
+    identification_info: IdentificationInfo,
+}
+
+#[derive(Debug, Deserialize)]
+struct FileIdentifier {
+    #[serde(rename = "CharacterString")]
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+enum IdentificationInfo {
+    #[serde(rename = "MD_DataIdentification")]
+    Data(Identification),
+    #[serde(rename = "SV_ServiceIdentification")]
+    Service(Identification),
+}
+
+impl IdentificationInfo {
+    fn identification(self) -> Identification {
+        match self {
+            Self::Data(identification) => identification,
+            Self::Service(identification) => identification,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct Identification {
+    citation: Citation,
+    r#abstract: Abstract,
+}
+
+#[derive(Debug, Deserialize)]
+struct Abstract {
+    #[serde(rename = "CharacterString")]
+    text: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Citation {
+    #[serde(rename = "CI_Citation")]
+    inner: CitationInner,
+}
+
+#[derive(Debug, Deserialize)]
+struct CitationInner {
+    title: Title,
+}
+
+#[derive(Debug, Deserialize)]
+struct Title {
+    #[serde(rename = "CharacterString")]
+    text: String,
 }

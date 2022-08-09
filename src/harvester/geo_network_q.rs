@@ -1,14 +1,11 @@
 use anyhow::Result;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use quick_xml::de::from_slice;
 use reqwest::Client;
 use serde::Deserialize;
+use serde_xml_rs::from_str;
 
-use crate::{
-    dataset::{Dataset, License},
-    harvester::{with_retry, write_dataset, Source},
-};
+use crate::harvester::{csw, with_retry, Source};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let entries = source.batch_size;
@@ -69,10 +66,10 @@ async fn fetch_datasets(
             .send()
             .await?
             .error_for_status()?
-            .bytes()
+            .text()
             .await?;
 
-        let response: SearchResults = from_slice(&body)?;
+        let response: SearchResults = from_str(&body)?;
 
         Ok(response)
     })
@@ -84,11 +81,11 @@ async fn fetch_datasets(
         0
     };
 
-    let results = response.metadata.len();
+    let results = response.records.len();
     let mut errors = 0;
 
-    for entry in response.metadata {
-        if let Err(err) = translate_dataset(dir, source, entry).await {
+    for record in response.records {
+        if let Err(err) = csw::translate_dataset(dir, source, record).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -98,97 +95,14 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, entry: Metadata) -> Result<()> {
-    let identifier = entry.file_identifier.text;
-
-    let identification = entry.identification_info.inner.identification();
-    let title = identification.citation.inner.title.text;
-    let description = identification.r#abstract.text.unwrap_or_default();
-
-    let dataset = Dataset {
-        title,
-        description,
-        license: License::Unknown,
-        source_url: source.source_url().replace("{{id}}", &identifier),
-    };
-
-    write_dataset(dir, identifier, dataset).await
-}
-
 #[derive(Debug, Deserialize)]
 struct SearchResults {
     summary: Option<Summary>,
     #[serde(rename = "MD_Metadata")]
-    metadata: Vec<Metadata>,
+    records: Vec<csw::Record>,
 }
 
 #[derive(Debug, Deserialize)]
 struct Summary {
     count: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Metadata {
-    #[serde(rename = "fileIdentifier")]
-    file_identifier: FileIdentifier,
-    #[serde(rename = "identificationInfo")]
-    identification_info: IdentificationInfo,
-}
-
-#[derive(Debug, Deserialize)]
-struct FileIdentifier {
-    #[serde(rename = "CharacterString")]
-    text: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct IdentificationInfo {
-    #[serde(rename = "$value")]
-    inner: IdentificationInfoInner,
-}
-
-#[derive(Debug, Deserialize)]
-enum IdentificationInfoInner {
-    #[serde(rename = "gmd:MD_DataIdentification")]
-    Data(Identification),
-    #[serde(rename = "srv:SV_ServiceIdentification")]
-    Service(Identification),
-}
-
-impl IdentificationInfoInner {
-    fn identification(self) -> Identification {
-        match self {
-            Self::Data(identification) => identification,
-            Self::Service(identification) => identification,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct Identification {
-    citation: Citation,
-    r#abstract: Abstract,
-}
-
-#[derive(Debug, Deserialize)]
-struct Abstract {
-    #[serde(rename = "CharacterString")]
-    text: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Citation {
-    #[serde(rename = "CI_Citation")]
-    inner: CitationInner,
-}
-
-#[derive(Debug, Deserialize)]
-struct CitationInner {
-    title: Title,
-}
-
-#[derive(Debug, Deserialize)]
-struct Title {
-    #[serde(rename = "CharacterString")]
-    text: String,
 }
