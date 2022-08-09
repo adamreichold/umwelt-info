@@ -18,11 +18,31 @@ pub struct Dataset {
     pub source_url: String,
 }
 
+#[derive(Deserialize, Serialize)]
+struct OldDataset {
+    pub title: String,
+    pub description: String,
+    pub source_url: String,
+}
+
 impl Dataset {
     pub fn read(mut file: File) -> Result<Self> {
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
-        let val = deserialize(&buf)?;
+
+        let val = match deserialize::<Dataset>(&buf) {
+            Ok(val) => val,
+            Err(err) => {
+                let old_val = deserialize::<OldDataset>(&buf).map_err(|_old_err| err)?;
+
+                Dataset {
+                    title: old_val.title,
+                    description: old_val.description,
+                    license: License::Unknown,
+                    source_url: old_val.source_url,
+                }
+            }
+        };
 
         Ok(val)
     }
