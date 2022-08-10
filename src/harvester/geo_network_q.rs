@@ -3,7 +3,7 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
 use serde::Deserialize;
-use serde_xml_rs::from_str;
+use serde_roxmltree::from_str;
 
 use crate::harvester::{csw, with_retry, Source};
 
