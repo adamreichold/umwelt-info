@@ -4,7 +4,7 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::{header::CONTENT_TYPE, Client};
 use serde::Deserialize;
-use serde_xml_rs::from_str;
+use serde_roxmltree::from_str;
 
 use crate::{
     dataset::{Dataset, License},
