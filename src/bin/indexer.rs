@@ -5,7 +5,7 @@ use rayon::iter::{ParallelBridge, ParallelIterator};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{
-    data_path_from_env, dataset::Dataset, index::Indexer, metrics::Metrics, server::Stats,
+    data_path_from_env, dataset::Dataset, index::Indexer, metrics::Metrics, server::stats::Stats,
 };
 
 fn main() -> Result<()> {
