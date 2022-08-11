@@ -17,7 +17,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let from = (1..requests).map(|request| 1 + request * entries);
     let to = from.clone().map(|from| from + entries - 1);
 
-    iter(from.zip(to))
+    let (results, errors) = iter(from.zip(to))
         .map(|(from, to)| fetch_datasets(dir, client, source, false, from, to))
         .buffer_unordered(source.concurrency)
         .fold(
