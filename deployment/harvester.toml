@@ -17,6 +17,7 @@ batch_size = 1000
 #name = "geodatenkatalog"
 #type = "geo_network_q"
 #url = "http://gdk.gdi-de.org/gdi-de/srv/ger/q"
+#filter = "environment"
 #source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
 #concurrency = 5
 

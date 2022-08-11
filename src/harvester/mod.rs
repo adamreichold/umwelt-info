@@ -81,6 +81,7 @@ pub struct Source {
     pub name: String,
     pub r#type: Type,
     url: Url,
+    filter: Option<String>,
     source_url: Option<String>,
     #[serde(default = "default_concurrency")]
     concurrency: usize,
@@ -106,14 +107,25 @@ impl Source {
 
 impl fmt::Debug for Source {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let Self {
+            name,
+            r#type,
+            url,
+            filter,
+            source_url,
+            concurrency,
+            batch_size,
+        } = self;
+
         fmt.debug_struct("Source")
-            .field("name", &self.name)
-            .field("type", &self.r#type)
+            .field("name", name)
+            .field("type", r#type)
             // The default format of `Url` is too verbose for the logs.
-            .field("url", &self.url.as_str())
-            .field("source_url", &self.source_url)
-            .field("concurrency", &self.concurrency)
-            .field("batch_size", &self.batch_size)
+            .field("url", &url.as_str())
+            .field("filter", filter)
+            .field("source_url", source_url)
+            .field("concurrency", concurrency)
+            .field("batch_size", batch_size)
             .finish()
     }
 }

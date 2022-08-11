@@ -2,7 +2,7 @@ use anyhow::Result;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_roxmltree::from_str;
 
 use crate::harvester::{csw, with_retry, Source};
@@ -57,12 +57,13 @@ async fn fetch_datasets(
     let response = with_retry(|| async {
         let body = client
             .get(source.url.clone())
-            .query(&[
-                ("fast", "false"),
-                ("buildSummary", &summary.to_string()),
-                ("from", &from.to_string()),
-                ("to", &to.to_string()),
-            ])
+            .query(&SearchParams {
+                fast: false,
+                summary,
+                from,
+                to,
+                topic: source.filter.as_deref(),
+            })
             .send()
             .await?
             .error_for_status()?
@@ -93,6 +94,17 @@ async fn fetch_datasets(
     }
 
     Ok((count, results, errors))
+}
+
+#[derive(Debug, Serialize)]
+struct SearchParams<'a> {
+    fast: bool,
+    #[serde(rename = "buildSummary")]
+    summary: bool,
+    from: usize,
+    to: usize,
+    #[serde(rename = "topicCat", skip_serializing_if = "Option::is_none")]
+    topic: Option<&'a str>,
 }
 
 #[derive(Debug, Deserialize)]
