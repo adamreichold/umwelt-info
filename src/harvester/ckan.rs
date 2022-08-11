@@ -5,7 +5,7 @@ use anyhow::{ensure, Result};
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     dataset::Dataset,
@@ -59,10 +59,16 @@ async fn fetch_datasets(
 
     let url = source.url.join("api/3/action/package_search")?;
 
+    #[derive(Serialize)]
+    struct Params {
+        start: usize,
+        rows: usize,
+    }
+
     let response = with_retry(|| async {
         let response = client
             .get(url.clone())
-            .query(&[("start", start.to_string()), ("rows", rows.to_string())])
+            .query(&Params { start, rows })
             .send()
             .await?
             .error_for_status()?

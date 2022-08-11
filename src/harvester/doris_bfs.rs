@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
+use serde::Serialize;
 
 use crate::{
     dataset::{Dataset, License},
@@ -58,10 +59,16 @@ async fn fetch_datasets(
 
     let url = source.url.join("/jspui/browse")?;
 
+    #[derive(Serialize)]
+    struct Params {
+        rpp: usize,
+        offset: usize,
+    }
+
     let response = with_retry(|| async {
         let response = client
             .get(url.clone())
-            .query(&[("rpp", &rpp.to_string()), ("offset", &offset.to_string())])
+            .query(&Params { rpp, offset })
             .send()
             .await?
             .error_for_status()?
