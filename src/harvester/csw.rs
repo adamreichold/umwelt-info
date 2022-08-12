@@ -2,13 +2,13 @@ use anyhow::Result;
 use askama::Template;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use reqwest::{header::CONTENT_TYPE, Client};
+use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use serde_roxmltree::from_str;
 
 use crate::{
     dataset::{Dataset, License},
-    harvester::{with_retry, write_dataset, Source},
+    harvester::{client::Client, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -67,18 +67,19 @@ async fn fetch_datasets(
     .render()
     .unwrap();
 
-    let body = with_retry(|| async {
-        client
-            .post(source.url.clone())
-            .header(CONTENT_TYPE, "application/xml")
-            .body(body.clone())
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await
-    })
-    .await?;
+    let body = client
+        .make_request(|client| async {
+            client
+                .post(source.url.clone())
+                .header(CONTENT_TYPE, "application/xml")
+                .body(body.clone())
+                .send()
+                .await?
+                .error_for_status()?
+                .text()
+                .await
+        })
+        .await?;
 
     let response = from_str::<GetRecordsResponse>(&body)?;
 

@@ -1,16 +1,17 @@
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 use anyhow::{Context, Result};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
-use reqwest::Client;
 use tokio::spawn;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{
     data_path_from_env,
-    harvester::{ckan, csw, doris_bfs, geo_network_q, wasser_de, Config, Source, Type},
+    harvester::{
+        ckan, client::Client, csw, doris_bfs, geo_network_q, wasser_de, Config, Source, Type,
+    },
     metrics::Metrics,
 };
 
@@ -32,16 +33,13 @@ async fn main() -> Result<()> {
 
     let metrics = Arc::new(Mutex::new(Metrics::default()));
 
+    let client = Client::start()?;
+
     let _ = dir.remove_dir_all("datasets.new");
     dir.create_dir("datasets.new")?;
 
     {
         let dir = Arc::new(dir.open_dir("datasets.new")?);
-
-        let client = Client::builder()
-            .user_agent("umwelt.info harvester")
-            .timeout(Duration::from_secs(300))
-            .build()?;
 
         let tasks = config
             .sources

@@ -4,13 +4,12 @@ use std::mem::take;
 use anyhow::{ensure, Result};
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 
 use crate::{
     dataset::Dataset,
-    harvester::{with_retry, write_dataset, Source},
+    harvester::{client::Client, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -66,17 +65,18 @@ async fn fetch_datasets(
         rows: usize,
     }
 
-    let body = with_retry(|| async {
-        client
-            .get(url.clone())
-            .query(&Params { start, rows })
-            .send()
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await
-    })
-    .await?;
+    let body = client
+        .make_request(|client| async {
+            client
+                .get(url.clone())
+                .query(&Params { start, rows })
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await
+        })
+        .await?;
 
     let response = from_slice::<PackageSearch>(&body)?;
 
