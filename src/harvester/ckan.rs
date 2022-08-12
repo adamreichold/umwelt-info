@@ -66,7 +66,7 @@ async fn fetch_datasets(
     }
 
     let body = client
-        .make_request(|client| async {
+        .make_request(&format!("{}-{}", source.name, start), |client| async {
             client
                 .get(url.clone())
                 .query(&Params { start, rows })

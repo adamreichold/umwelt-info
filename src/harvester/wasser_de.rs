@@ -14,7 +14,7 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
         .join("rest/BaseController/FilterElements/V_REP_BASE_VALID")?;
 
     let body = client
-        .make_request(|client| async {
+        .make_request(&source.name, |client| async {
             client
                 .post(url.clone())
                 .json(&Request { filter: Filter {} })

@@ -1,38 +1,54 @@
 use std::fmt;
 use std::future::Future;
+use std::sync::Arc;
 
 use anyhow::{Error, Result};
 use bytes::Bytes;
+use cap_std::fs::Dir;
 use reqwest::Client as HttpClient;
 use tokio::time::{sleep, Duration};
+use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
 #[derive(Clone)]
 pub struct Client {
     http_client: HttpClient,
+    dir: Arc<Dir>,
 }
 
 impl Client {
-    pub fn start() -> Result<Self> {
+    pub fn start(dir: &Dir) -> Result<Self> {
+        let _ = dir.remove_dir_all("responses");
+        dir.create_dir("responses")?;
+
         let http_client = HttpClient::builder()
             .user_agent("umwelt.info harvester")
             .timeout(Duration::from_secs(300))
             .build()?;
 
-        Ok(Self { http_client })
+        let dir = Arc::new(dir.open_dir("responses")?);
+
+        Ok(Self { dir, http_client })
     }
 
-    pub async fn make_request<'a, A, F, T, E>(&'a self, mut action: A) -> Result<T>
+    pub async fn make_request<'a, A, F, T, E>(&'a self, key: &str, mut action: A) -> Result<T>
     where
         A: FnMut(&'a HttpClient) -> F,
         F: Future<Output = Result<T, E>>,
         T: Response,
         E: Into<Error> + fmt::Display,
     {
-        retry_request(|| action(&self.http_client)).await
+        let response = retry_request(|| action(&self.http_client)).await?;
+
+        let file = self.dir.create(key)?;
+
+        let mut file = AsyncFile::from_std(file.into_std());
+        file.write_all(response.as_ref()).await?;
+
+        Ok(response)
     }
 }
 
-pub trait Response {}
+pub trait Response: AsRef<[u8]> {}
 
 impl Response for Bytes {}
 

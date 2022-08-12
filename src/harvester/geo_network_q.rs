@@ -54,7 +54,7 @@ async fn fetch_datasets(
     tracing::debug!("Fetching datasets from {} to {}", from, to);
 
     let body = client
-        .make_request(|client| async {
+        .make_request(&format!("{}-{}", source.name, from), |client| async {
             client
                 .get(source.url.clone())
                 .query(&SearchParams {

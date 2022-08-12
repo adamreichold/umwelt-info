@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
 
     let metrics = Arc::new(Mutex::new(Metrics::default()));
 
-    let client = Client::start()?;
+    let client = Client::start(&dir)?;
 
     let _ = dir.remove_dir_all("datasets.new");
     dir.create_dir("datasets.new")?;
