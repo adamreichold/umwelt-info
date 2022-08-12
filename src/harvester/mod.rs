@@ -8,7 +8,8 @@ use std::fmt;
 use std::future::Future;
 use std::io::Read;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
+use bytes::Bytes;
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
 use serde::Deserialize;
 use tokio::time::{sleep, Duration};
@@ -32,10 +33,18 @@ async fn write_dataset(dir: &Dir, id: String, dataset: Dataset) -> Result<()> {
     Ok(())
 }
 
-async fn with_retry<A, F, T>(mut action: A) -> Result<T>
+trait Response {}
+
+impl Response for Bytes {}
+
+impl Response for String {}
+
+async fn with_retry<A, F, T, E>(mut action: A) -> Result<T>
 where
     A: FnMut() -> F,
-    F: Future<Output = Result<T>>,
+    F: Future<Output = Result<T, E>>,
+    T: Response,
+    E: Into<Error> + fmt::Display,
 {
     let mut attempts = 0;
     let mut duration = Duration::from_secs(1);
@@ -52,7 +61,7 @@ where
                     attempts += 1;
                     duration *= 10;
                 } else {
-                    return Err(err);
+                    return Err(err.into());
                 }
             }
         }
@@ -152,7 +161,9 @@ mod tests {
         pause();
         let start = Instant::now();
 
-        with_retry::<_, _, ()>(|| async { Ok(()) }).await.unwrap();
+        with_retry::<_, _, _, Error>(|| async { Ok(Bytes::new()) })
+            .await
+            .unwrap();
 
         assert_eq!(start.elapsed().as_secs(), 0);
     }
@@ -162,7 +173,7 @@ mod tests {
         pause();
         let start = Instant::now();
 
-        with_retry::<_, _, ()>(|| async { Err(anyhow!("failure")) })
+        with_retry::<_, _, Bytes, _>(|| async { Err(anyhow!("failure")) })
             .await
             .unwrap_err();
 
@@ -176,12 +187,12 @@ mod tests {
 
         let mut count = 0;
 
-        with_retry::<_, _, ()>(|| {
+        with_retry(|| {
             count += 1;
 
             async move {
                 if count > 3 {
-                    Ok(())
+                    Ok(Bytes::new())
                 } else {
                     Err(anyhow!("failure"))
                 }

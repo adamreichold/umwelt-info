@@ -67,8 +67,8 @@ async fn fetch_datasets(
     .render()
     .unwrap();
 
-    let response = with_retry(|| async {
-        let body = client
+    let body = with_retry(|| async {
+        client
             .post(source.url.clone())
             .header(CONTENT_TYPE, "application/xml")
             .body(body.clone())
@@ -76,13 +76,11 @@ async fn fetch_datasets(
             .await?
             .error_for_status()?
             .text()
-            .await?;
-
-        let response: GetRecordsResponse = from_str(&body)?;
-
-        Ok(response)
+            .await
     })
     .await?;
+
+    let response = from_str::<GetRecordsResponse>(&body)?;
 
     let count = response.results.num_records_matched;
     let results = response.results.records.len();

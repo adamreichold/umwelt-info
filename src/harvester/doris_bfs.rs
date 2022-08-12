@@ -65,17 +65,15 @@ async fn fetch_datasets(
         offset: usize,
     }
 
-    let response = with_retry(|| async {
-        let response = client
+    let body = with_retry(|| async {
+        client
             .get(url.clone())
             .query(&Params { rpp, offset })
             .send()
             .await?
             .error_for_status()?
             .text()
-            .await?;
-
-        Ok(response)
+            .await
     })
     .await?;
 
@@ -83,7 +81,7 @@ async fn fetch_datasets(
     let handles;
 
     {
-        let document = Html::parse_document(&response);
+        let document = Html::parse_document(&body);
 
         count = parse_count(&document)?;
         handles = parse_handles(&document)?;
@@ -114,16 +112,14 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
 
     let url = source.url.join(handle)?;
 
-    let response = with_retry(|| async {
-        let response = client
+    let body = with_retry(|| async {
+        client
             .get(url.clone())
             .send()
             .await?
             .error_for_status()?
             .text()
-            .await?;
-
-        Ok(response)
+            .await
     })
     .await?;
 
@@ -132,7 +128,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
     let r#abstract;
 
     {
-        let document = Html::parse_document(&response);
+        let document = Html::parse_document(&body);
 
         identifier = document
             .select(&SELECTORS.identifier_selector)

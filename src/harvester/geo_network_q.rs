@@ -54,8 +54,8 @@ async fn fetch_datasets(
 ) -> Result<(usize, usize, usize)> {
     tracing::debug!("Fetching datasets from {} to {}", from, to);
 
-    let response = with_retry(|| async {
-        let body = client
+    let body = with_retry(|| async {
+        client
             .get(source.url.clone())
             .query(&SearchParams {
                 fast: false,
@@ -68,13 +68,11 @@ async fn fetch_datasets(
             .await?
             .error_for_status()?
             .text()
-            .await?;
-
-        let response: SearchResults = from_str(&body)?;
-
-        Ok(response)
+            .await
     })
     .await?;
+
+    let response = from_str::<SearchResults>(&body)?;
 
     let count = if let Some(summary) = response.summary {
         summary.count.parse()?
