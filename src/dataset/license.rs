@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum License {
     DlDeBy20,
     DlDeZero20,
+    CcBy40,
     DorisBfs,
     Unknown,
     Other(String),
@@ -19,6 +20,7 @@ impl License {
             Self::DlDeBy20 => "https://www.govdata.de/dl-de/by-2-0",
             Self::DlDeZero20 => "https://www.govdata.de/dl-de/zero-2-0",
             Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
+            Self::CcBy40 => "http://creativecommons.org/licenses/by/4.0/",
             Self::Unknown | Self::Other(_) => return None,
         };
 
@@ -52,6 +54,16 @@ impl From<String> for License {
                     "http://dcat-ap.de/def/licenses/dl-zero-de/2_0",
                     License::DlDeZero20,
                 ),
+                // Creative Commons Namensnennung – 4.0 International (CC BY 4.0)
+                ("cc-by/4.0", License::CcBy40),
+                ("http://dcat-ap.de/def/licenses/cc-by/4.0", License::CcBy40),
+                ("http://dcat-ap.de/def/licenses/cc-by/4_0", License::CcBy40),
+                ("http://dcat-ap.de/def/licenses/CC BY 4.0", License::CcBy40),
+                (
+                    "https://creativecommons.org/licenses/by/4.0/",
+                    License::CcBy40,
+                ),
+                ("CC-BY-4.0", License::CcBy40),
             ]
             .into()
         });
@@ -87,6 +99,7 @@ impl fmt::Display for License {
         let val = match self {
             Self::DlDeBy20 => "dl-by-de/2.0",
             Self::DlDeZero20 => "dl-zero-de/2.0",
+            Self::CcBy40 => "cc-by/4.0",
             Self::DorisBfs => "doris-bfs",
             Self::Unknown => "unbekannt",
             Self::Other(val) => val,
