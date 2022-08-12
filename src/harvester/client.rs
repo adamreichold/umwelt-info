@@ -1,3 +1,4 @@
+use std::env::var;
 use std::fmt;
 use std::future::Future;
 use std::sync::Arc;
@@ -7,23 +8,33 @@ use bytes::Bytes;
 use cap_std::fs::Dir;
 use reqwest::Client as HttpClient;
 use tokio::time::{sleep, Duration};
-use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
+use tokio::{
+    fs::File as AsyncFile,
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 
 #[derive(Clone)]
 pub struct Client {
-    http_client: HttpClient,
+    http_client: Option<HttpClient>,
     dir: Arc<Dir>,
 }
 
 impl Client {
     pub fn start(dir: &Dir) -> Result<Self> {
-        let _ = dir.remove_dir_all("responses");
-        dir.create_dir("responses")?;
+        let http_client = match var("REPLAY_RESPONSES") {
+            Err(_err) => {
+                let http_client = HttpClient::builder()
+                    .user_agent("umwelt.info harvester")
+                    .timeout(Duration::from_secs(300))
+                    .build()?;
 
-        let http_client = HttpClient::builder()
-            .user_agent("umwelt.info harvester")
-            .timeout(Duration::from_secs(300))
-            .build()?;
+                let _ = dir.remove_dir_all("responses");
+                dir.create_dir("responses")?;
+
+                Some(http_client)
+            }
+            Ok(_val) => None,
+        };
 
         let dir = Arc::new(dir.open_dir("responses")?);
 
@@ -37,22 +48,48 @@ impl Client {
         T: Response,
         E: Into<Error> + fmt::Display,
     {
-        let response = retry_request(|| action(&self.http_client)).await?;
+        match &self.http_client {
+            Some(http_client) => {
+                let response = retry_request(|| action(http_client)).await?;
 
-        let file = self.dir.create(key)?;
+                let file = self.dir.create(key)?;
 
-        let mut file = AsyncFile::from_std(file.into_std());
-        file.write_all(response.as_ref()).await?;
+                let mut file = AsyncFile::from_std(file.into_std());
+                file.write_all(response.as_ref()).await?;
 
-        Ok(response)
+                Ok(response)
+            }
+            None => {
+                let file = self.dir.open(key)?;
+
+                let mut file = AsyncFile::from_std(file.into_std());
+
+                let mut buf = Vec::new();
+                file.read_to_end(&mut buf).await?;
+
+                T::from_buf(buf)
+            }
+        }
     }
 }
 
-pub trait Response: AsRef<[u8]> {}
+pub trait Response: AsRef<[u8]> + Sized {
+    fn from_buf(buf: Vec<u8>) -> Result<Self>;
+}
 
-impl Response for Bytes {}
+impl Response for Bytes {
+    fn from_buf(buf: Vec<u8>) -> Result<Self> {
+        Ok(buf.into())
+    }
+}
 
-impl Response for String {}
+impl Response for String {
+    fn from_buf(buf: Vec<u8>) -> Result<Self> {
+        let text = String::from_utf8(buf)?;
+
+        Ok(text)
+    }
+}
 
 async fn retry_request<A, F, T, E>(mut action: A) -> Result<T>
 where
