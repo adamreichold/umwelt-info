@@ -65,16 +65,19 @@ async fn fetch_datasets(
     }
 
     let body = client
-        .make_request(|client| async {
-            client
-                .get(url.clone())
-                .query(&Params { rpp, offset })
-                .send()
-                .await?
-                .error_for_status()?
-                .text()
-                .await
-        })
+        .make_request(
+            &format!("{}-browse-{}", source.name, offset),
+            |client| async {
+                client
+                    .get(url.clone())
+                    .query(&Params { rpp, offset })
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .text()
+                    .await
+            },
+        )
         .await?;
 
     let count;
@@ -113,15 +116,22 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
     let url = source.url.join(handle)?;
 
     let body = client
-        .make_request(|client| async {
-            client
-                .get(url.clone())
-                .send()
-                .await?
-                .error_for_status()?
-                .text()
-                .await
-        })
+        .make_request(
+            &format!(
+                "{}-handle-{}",
+                source.name,
+                handle.rsplit('/').next().unwrap()
+            ),
+            |client| async {
+                client
+                    .get(url.clone())
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .text()
+                    .await
+            },
+        )
         .await?;
 
     let identifier;

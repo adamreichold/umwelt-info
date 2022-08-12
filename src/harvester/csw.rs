@@ -68,7 +68,7 @@ async fn fetch_datasets(
     .unwrap();
 
     let body = client
-        .make_request(|client| async {
+        .make_request(&format!("{}-{}", source.name, start_pos), |client| async {
             client
                 .post(source.url.clone())
                 .header(CONTENT_TYPE, "application/xml")
