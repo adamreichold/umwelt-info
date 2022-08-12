@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_json::from_slice;
 
 use crate::{
     dataset::{Dataset, License},
@@ -13,19 +14,19 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
         .url
         .join("rest/BaseController/FilterElements/V_REP_BASE_VALID")?;
 
-    let response = with_retry(|| async {
-        let response = client
+    let body = with_retry(|| async {
+        client
             .post(url.clone())
             .json(&Request { filter: Filter {} })
             .send()
             .await?
             .error_for_status()?
-            .json::<Response>()
-            .await?;
-
-        Ok(response)
+            .bytes()
+            .await
     })
     .await?;
+
+    let response = from_slice::<Response>(&body)?;
 
     let count = response.results.len();
     tracing::info!("Retrieved {count} documents");

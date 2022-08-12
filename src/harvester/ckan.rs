@@ -6,6 +6,7 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_json::from_slice;
 
 use crate::{
     dataset::Dataset,
@@ -65,19 +66,19 @@ async fn fetch_datasets(
         rows: usize,
     }
 
-    let response = with_retry(|| async {
-        let response = client
+    let body = with_retry(|| async {
+        client
             .get(url.clone())
             .query(&Params { start, rows })
             .send()
             .await?
             .error_for_status()?
-            .json::<PackageSearch>()
-            .await?;
-
-        Ok(response)
+            .bytes()
+            .await
     })
     .await?;
+
+    let response = from_slice::<PackageSearch>(&body)?;
 
     ensure!(
         response.success,
