@@ -10,20 +10,14 @@ use std::io::Read;
 
 use anyhow::Result;
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
-use parking_lot::Mutex;
 use serde::Deserialize;
 use tokio::time::{sleep, Duration};
 use toml::from_str;
 use url::Url;
 
-use crate::{dataset::Dataset, metrics::Metrics};
+use crate::dataset::Dataset;
 
-async fn write_dataset(
-    dir: &Dir,
-    metrics: &Mutex<Metrics>,
-    id: String,
-    dataset: Dataset,
-) -> Result<()> {
+async fn write_dataset(dir: &Dir, id: String, dataset: Dataset) -> Result<()> {
     let file = match dir.open_with(&id, FsOpenOptions::new().write(true).create_new(true)) {
         Ok(file) => file,
         Err(_err) => {
@@ -34,8 +28,6 @@ async fn write_dataset(
     };
 
     dataset.write(file).await?;
-
-    metrics.lock().record_license(&dataset.license);
 
     Ok(())
 }

@@ -4,32 +4,25 @@ use std::mem::take;
 use anyhow::{ensure, Result};
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use parking_lot::Mutex;
 use reqwest::Client;
 use serde::Deserialize;
 
 use crate::{
     dataset::Dataset,
     harvester::{with_retry, write_dataset, Source},
-    metrics::Metrics,
 };
 
-pub async fn harvest(
-    dir: &Dir,
-    client: &Client,
-    metrics: &Mutex<Metrics>,
-    source: &Source,
-) -> Result<(usize, usize, usize)> {
+pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let rows = source.batch_size;
 
-    let (count, results, errors) = fetch_datasets(dir, client, metrics, source, 0, rows).await?;
+    let (count, results, errors) = fetch_datasets(dir, client, source, 0, rows).await?;
     tracing::info!("Harvesting {} datasets", count);
 
     let requests = (count + rows - 1) / rows;
     let start = (1..requests).map(|request| request * rows);
 
     let (results, errors) = iter(start)
-        .map(|start| fetch_datasets(dir, client, metrics, source, start, rows))
+        .map(|start| fetch_datasets(dir, client, source, start, rows))
         .buffer_unordered(source.concurrency)
         .fold(
             (results, errors),
@@ -54,11 +47,10 @@ pub async fn harvest(
     Ok((count, results, errors))
 }
 
-#[tracing::instrument(skip(dir, client, metrics, source))]
+#[tracing::instrument(skip(dir, client, source))]
 async fn fetch_datasets(
     dir: &Dir,
     client: &Client,
-    metrics: &Mutex<Metrics>,
     source: &Source,
     start: usize,
     rows: usize,
@@ -95,7 +87,7 @@ async fn fetch_datasets(
     let mut errors = 0;
 
     for package in response.result.results {
-        if let Err(err) = translate_dataset(dir, metrics, source, package).await {
+        if let Err(err) = translate_dataset(dir, source, package).await {
             tracing::error!("{:#}", err);
 
             errors += 1;
@@ -105,12 +97,7 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(
-    dir: &Dir,
-    metrics: &Mutex<Metrics>,
-    source: &Source,
-    mut package: Package,
-) -> Result<()> {
+async fn translate_dataset(dir: &Dir, source: &Source, mut package: Package) -> Result<()> {
     let license = package.take_license().into();
 
     let dataset = Dataset {
@@ -120,7 +107,7 @@ async fn translate_dataset(
         source_url: source.source_url().replace("{{name}}", &package.name),
     };
 
-    write_dataset(dir, metrics, package.id, dataset).await
+    write_dataset(dir, package.id, dataset).await
 }
 
 #[derive(Deserialize)]

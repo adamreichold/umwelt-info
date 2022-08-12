@@ -98,11 +98,11 @@ async fn harvest(
     let start = SystemTime::now();
 
     let res = match source.r#type {
-        Type::Ckan => ckan::harvest(&dir, client, metrics, &source).await,
-        Type::Csw => csw::harvest(&dir, client, metrics, &source).await,
-        Type::WasserDe => wasser_de::harvest(&dir, client, metrics, &source).await,
-        Type::DorisBfs => doris_bfs::harvest(&dir, client, metrics, &source).await,
-        Type::GeoNetworkQ => geo_network_q::harvest(&dir, client, metrics, &source).await,
+        Type::Ckan => ckan::harvest(&dir, client, &source).await,
+        Type::Csw => csw::harvest(&dir, client, &source).await,
+        Type::WasserDe => wasser_de::harvest(&dir, client, &source).await,
+        Type::DorisBfs => doris_bfs::harvest(&dir, client, &source).await,
+        Type::GeoNetworkQ => geo_network_q::harvest(&dir, client, &source).await,
     };
 
     let (count, transmitted, failed) =
