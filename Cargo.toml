@@ -10,6 +10,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 askama = { version = "0.11", default-features = false, features = ["urlencode"] }
+async-compression = { version = "0.3", features = ["tokio", "zstd"] }
 axum = { version = "0.5", default-features = false, features = ["http1", "query", "tower-log"] }
 bincode = "1.3"
 bytes = "1.2"

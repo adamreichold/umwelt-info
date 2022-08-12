@@ -4,13 +4,14 @@ use std::future::Future;
 use std::sync::Arc;
 
 use anyhow::{Error, Result};
+use async_compression::tokio::{bufread::ZstdDecoder, write::ZstdEncoder};
 use bytes::Bytes;
 use cap_std::fs::Dir;
 use reqwest::Client as HttpClient;
 use tokio::time::{sleep, Duration};
 use tokio::{
     fs::File as AsyncFile,
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncReadExt, AsyncWriteExt, BufReader},
 };
 
 #[derive(Clone)]
@@ -54,15 +55,17 @@ impl Client {
 
                 let file = self.dir.create(key)?;
 
-                let mut file = AsyncFile::from_std(file.into_std());
+                let mut file = ZstdEncoder::new(AsyncFile::from_std(file.into_std()));
                 file.write_all(response.as_ref()).await?;
+                file.shutdown().await?;
 
                 Ok(response)
             }
             None => {
                 let file = self.dir.open(key)?;
 
-                let mut file = AsyncFile::from_std(file.into_std());
+                let mut file =
+                    ZstdDecoder::new(BufReader::new(AsyncFile::from_std(file.into_std())));
 
                 let mut buf = Vec::new();
                 file.read_to_end(&mut buf).await?;
