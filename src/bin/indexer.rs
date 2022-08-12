@@ -1,9 +1,12 @@
 use anyhow::Result;
 use cap_std::{ambient_authority, fs::Dir};
+use parking_lot::Mutex;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use umwelt_info::{data_path_from_env, dataset::Dataset, index::Indexer, server::Stats};
+use umwelt_info::{
+    data_path_from_env, dataset::Dataset, index::Indexer, metrics::Metrics, server::Stats,
+};
 
 fn main() -> Result<()> {
     tracing_subscriber::registry()
@@ -18,6 +21,10 @@ fn main() -> Result<()> {
     let dir = Dir::open_ambient_dir(data_path, ambient_authority())?;
 
     let stats = Stats::read(&dir)?;
+
+    let mut metrics = Mutex::new(Metrics::read(&dir)?);
+
+    metrics.get_mut().reset_datasets();
 
     dir.read_dir("datasets")?
         .par_bridge()
@@ -39,6 +46,8 @@ fn main() -> Result<()> {
 
                     let accesses = accesses.and_then(|accesses| accesses.get(&dataset_id));
 
+                    metrics.lock().record_dataset(&dataset);
+
                     indexer.add_document(
                         source_id.clone(),
                         dataset_id,
@@ -51,6 +60,8 @@ fn main() -> Result<()> {
         })?;
 
     indexer.commit()?;
+
+    metrics.get_mut().write(&dir)?;
 
     Ok(())
 }

@@ -7,7 +7,7 @@ use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::dataset::License;
+use crate::dataset::{Dataset, License};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Metrics {
@@ -57,8 +57,12 @@ impl Metrics {
         );
     }
 
-    pub fn record_license(&mut self, license: &License) {
-        *self.licenses.entry_ref(license).or_default() += 1;
+    pub fn reset_datasets(&mut self) {
+        self.licenses.clear();
+    }
+
+    pub fn record_dataset(&mut self, dataset: &Dataset) {
+        *self.licenses.entry_ref(&dataset.license).or_default() += 1;
     }
 }
 
