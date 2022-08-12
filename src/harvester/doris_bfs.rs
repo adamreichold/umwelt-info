@@ -3,13 +3,12 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::Serialize;
 
 use crate::{
     dataset::{Dataset, License},
-    harvester::{with_retry, write_dataset, Source},
+    harvester::{client::Client, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -65,17 +64,18 @@ async fn fetch_datasets(
         offset: usize,
     }
 
-    let body = with_retry(|| async {
-        client
-            .get(url.clone())
-            .query(&Params { rpp, offset })
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await
-    })
-    .await?;
+    let body = client
+        .make_request(|client| async {
+            client
+                .get(url.clone())
+                .query(&Params { rpp, offset })
+                .send()
+                .await?
+                .error_for_status()?
+                .text()
+                .await
+        })
+        .await?;
 
     let count;
     let handles;
@@ -112,16 +112,17 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
 
     let url = source.url.join(handle)?;
 
-    let body = with_retry(|| async {
-        client
-            .get(url.clone())
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await
-    })
-    .await?;
+    let body = client
+        .make_request(|client| async {
+            client
+                .get(url.clone())
+                .send()
+                .await?
+                .error_for_status()?
+                .text()
+                .await
+        })
+        .await?;
 
     let identifier;
     let title;

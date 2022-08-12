@@ -1,11 +1,10 @@
 use anyhow::Result;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_roxmltree::from_str;
 
-use crate::harvester::{csw, with_retry, Source};
+use crate::harvester::{client::Client, csw, Source};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
     let entries = source.batch_size;
@@ -54,23 +53,24 @@ async fn fetch_datasets(
 ) -> Result<(usize, usize, usize)> {
     tracing::debug!("Fetching datasets from {} to {}", from, to);
 
-    let body = with_retry(|| async {
-        client
-            .get(source.url.clone())
-            .query(&SearchParams {
-                fast: false,
-                summary,
-                from,
-                to,
-                topic: source.filter.as_deref(),
-            })
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await
-    })
-    .await?;
+    let body = client
+        .make_request(|client| async {
+            client
+                .get(source.url.clone())
+                .query(&SearchParams {
+                    fast: false,
+                    summary,
+                    from,
+                    to,
+                    topic: source.filter.as_deref(),
+                })
+                .send()
+                .await?
+                .error_for_status()?
+                .text()
+                .await
+        })
+        .await?;
 
     let response = from_str::<SearchResults>(&body)?;
 
