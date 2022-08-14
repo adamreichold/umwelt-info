@@ -6,22 +6,22 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum License {
+    Unknown,
+    Other(String),
     DlDeBy20,
     DlDeZero20,
     CcBy40,
     DorisBfs,
-    Unknown,
-    Other(String),
 }
 
 impl License {
     pub fn url(&self) -> Option<&'static str> {
         let val = match self {
+            Self::Unknown | Self::Other(_) => return None,
             Self::DlDeBy20 => "https://www.govdata.de/dl-de/by-2-0",
             Self::DlDeZero20 => "https://www.govdata.de/dl-de/zero-2-0",
             Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
             Self::CcBy40 => "http://creativecommons.org/licenses/by/4.0/",
-            Self::Unknown | Self::Other(_) => return None,
         };
 
         Some(val)
@@ -97,12 +97,12 @@ impl From<Option<String>> for License {
 impl fmt::Display for License {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
+            Self::Unknown => "unbekannt",
+            Self::Other(val) => val,
             Self::DlDeBy20 => "dl-by-de/2.0",
             Self::DlDeZero20 => "dl-zero-de/2.0",
             Self::CcBy40 => "cc-by/4.0",
             Self::DorisBfs => "doris-bfs",
-            Self::Unknown => "unbekannt",
-            Self::Other(val) => val,
         };
 
         fmt.write_str(val)
