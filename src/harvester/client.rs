@@ -16,30 +16,32 @@ use tokio::{
 
 #[derive(Clone)]
 pub struct Client {
-    http_client: Option<HttpClient>,
+    replay: bool,
+    http_client: HttpClient,
     dir: Arc<Dir>,
 }
 
 impl Client {
     pub fn start(dir: &Dir) -> Result<Self> {
-        let http_client = match var("REPLAY_RESPONSES") {
-            Err(_err) => {
-                let http_client = HttpClient::builder()
-                    .user_agent("umwelt.info harvester")
-                    .timeout(Duration::from_secs(300))
-                    .build()?;
+        let replay = var("REPLAY_RESPONSES").is_ok();
 
-                let _ = dir.remove_dir_all("responses");
-                dir.create_dir("responses")?;
+        let http_client = HttpClient::builder()
+            .user_agent("umwelt.info harvester")
+            .timeout(Duration::from_secs(300))
+            .build()?;
 
-                Some(http_client)
-            }
-            Ok(_val) => None,
-        };
+        if !replay {
+            let _ = dir.remove_dir_all("responses");
+            dir.create_dir("responses")?;
+        }
 
         let dir = Arc::new(dir.open_dir("responses")?);
 
-        Ok(Self { dir, http_client })
+        Ok(Self {
+            replay,
+            dir,
+            http_client,
+        })
     }
 
     pub async fn make_request<'a, A, F, T, E>(&'a self, key: &str, mut action: A) -> Result<T>
@@ -49,30 +51,29 @@ impl Client {
         T: Response,
         E: Into<Error> + fmt::Display,
     {
-        match &self.http_client {
-            Some(http_client) => {
-                let response = retry_request(|| action(http_client)).await?;
-
-                let file = self.dir.create(key)?;
-
-                let mut file = ZstdEncoder::new(AsyncFile::from_std(file.into_std()));
-                file.write_all(response.as_ref()).await?;
-                file.shutdown().await?;
-
-                Ok(response)
-            }
-            None => {
-                let file = self.dir.open(key)?;
-
+        if self.replay {
+            if let Ok(file) = self.dir.open(key) {
                 let mut file =
                     ZstdDecoder::new(BufReader::new(AsyncFile::from_std(file.into_std())));
 
                 let mut buf = Vec::new();
                 file.read_to_end(&mut buf).await?;
 
-                T::from_buf(buf)
+                return T::from_buf(buf);
+            } else {
+                tracing::warn!("Failed to replay {key}");
             }
         }
+
+        let response = retry_request(|| action(&self.http_client)).await?;
+
+        let file = self.dir.create(key)?;
+
+        let mut file = ZstdEncoder::new(AsyncFile::from_std(file.into_std()));
+        file.write_all(response.as_ref()).await?;
+        file.shutdown().await?;
+
+        Ok(response)
     }
 }
 
