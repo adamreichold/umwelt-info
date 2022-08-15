@@ -51,3 +51,17 @@ Finally, executing
 ```
 
 will make the server listen on `127.0.0.1:8081`.
+
+### Replaying responses
+
+Iteratively developing harvesters can be time-consuming and place undue load on the source due to large responses being transmitted over the network. To mitigate this issue, each request must be identified using a key
+
+```rust
+let response = client.make_request(&format!("{}-{}", source.name, record_number), |client| ...).await?;
+```
+
+under which its response is stored on disk. Once development has reached a state where the set of requests is stable, their responses can be replayed by setting `$REPLAY_RESPONSES`, e.g.
+
+```console
+> REPLAY_RESPONSES= cargo xtask harvester
+```
