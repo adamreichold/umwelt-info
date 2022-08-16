@@ -11,6 +11,11 @@ pub enum License {
     DlDeBy20,
     DlDeZero20,
     CcBy40,
+    CcBy10,
+    CcBySa10,
+    CcByNcSa10,
+    CcByNcNd10,
+    OfficialWork,
     DorisBfs,
     GeoNutz20130319,
     GeoNutz20131001,
@@ -33,6 +38,11 @@ impl License {
             Self::DlDeBy20 => "https://www.govdata.de/dl-de/by-2-0",
             Self::DlDeZero20 => "https://www.govdata.de/dl-de/zero-2-0",
             Self::CcBy40 => "http://creativecommons.org/licenses/by/4.0/",
+            Self::CcBy10 => "http://creativecommons.org/licenses/by/1.0/",
+            Self::CcBySa10 => "http://creativecommons.org/licenses/by-sa/1.0/",
+            Self::CcByNcSa10 => "http://creativecommons.org/licenses/by-nc-sa/1.0/",
+            Self::CcByNcNd10 => "http://creativecommons.org/licenses/by-nc-nd/1.0/",
+            Self::OfficialWork => "https://www.gesetze-im-internet.de/urhg/__5.html",
             Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
             Self::GeoNutz20130319 => {
                 "https://sg.geodatenzentrum.de/web_public/gdz/lizenz/geonutzv.pdf"
@@ -50,9 +60,13 @@ impl From<&'_ str> for License {
     fn from(val: &str) -> Self {
         static LICENSES: Lazy<HashMap<&'static str, License>> = Lazy::new(|| {
             [
+                // Explicitly parse licenses marked as unknown
+                ("UNKNOWN", License::Unknown),
+                ("SOURCE", License::Unknown),
                 // Datenlizenz Deutschland – Namensnennung – Version 2.0
                 ("dl-by-de/2.0", License::DlDeBy20),
                 ("dl-de-by-2.0", License::DlDeBy20),
+                ("DL-DE->BY-2.0", License::DlDeBy20),
                 (
                     "http://dcat-ap.de/def/licenses/dl-by-de/2.0",
                     License::DlDeBy20,
@@ -82,6 +96,21 @@ impl From<&'_ str> for License {
                     License::CcBy40,
                 ),
                 ("CC-BY-4.0", License::CcBy40),
+                // Creative Commons Attribution
+                ("cc-by", License::CcBy10),
+                ("BY", License::CcBy10),
+                // Creative Commons Attribution ShareAlike
+                ("cc-by-sa", License::CcBySa10),
+                ("BY-SA", License::CcBySa10),
+                // Creative Commons Attribution NonCommercial ShareAlike
+                ("cc-by-nc-sa", License::CcByNcSa10),
+                ("BY-NC-SA", License::CcByNcSa10),
+                // Creative Commons Attribution NonCommercial NoDerivatives
+                ("cc-by-nc-nd", License::CcByNcNd10),
+                ("BY-NC-ND", License::CcByNcNd10),
+                // Amtliches Werk, public domain according to $5 UrhG.
+                ("officialWork", License::OfficialWork),
+                ("UrhG-5", License::OfficialWork),
                 // Nutzungsbestimmungen für die Bereitstellung von Geodaten des Bundes
                 ("geoNutz/20130319", License::GeoNutz20130319),
                 ("geonutz/20130319", License::GeoNutz20130319),
@@ -123,6 +152,11 @@ impl fmt::Display for License {
             Self::DlDeBy20 => "dl-by-de/2.0",
             Self::DlDeZero20 => "dl-zero-de/2.0",
             Self::CcBy40 => "cc-by/4.0",
+            Self::CcBy10 => "cc-by",
+            Self::CcBySa10 => "cc-by-sa",
+            Self::CcByNcSa10 => "cc-by-nc-sa",
+            Self::CcByNcNd10 => "cc-by-nc-nd",
+            Self::OfficialWork => "officialWork",
             Self::DorisBfs => "doris-bfs",
             Self::GeoNutz20130319 => "geoNutz/20130319",
             Self::GeoNutz20131001 => "geoNutz/20131001",
