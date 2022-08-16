@@ -36,7 +36,7 @@ use smallvec::smallvec;
 use time::{macros::format_description, Date};
 
 use crate::{
-    dataset::{Contact, Dataset, Resource},
+    dataset::{Contact, Dataset, Resource, Tag},
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -189,25 +189,21 @@ struct Document {
 }
 
 impl Document {
-    fn tags(&self) -> Vec<String> {
+    fn tags(&self) -> Vec<Tag> {
         let mut tags = Vec::new();
 
         if let Some(directive) = &self.directive {
             if directive.contains("1#") {
-                tags.push("WRRL".to_owned());
-                tags.push("Wasserrahmenrichtlinie".to_owned());
+                tags.push(Tag::Wrrl);
             }
             if directive.contains("2#") {
-                tags.push("HWRM-RL".to_owned());
-                tags.push("Hochwasserrisikomanagement-Richtlinie".to_owned());
+                tags.push(Tag::HwrmRl);
             }
             if directive.contains("3#") {
-                tags.push("MSR-RL".to_owned());
-                tags.push("Meeresstrategie-Rahmenrichtlinie".to_owned());
+                tags.push(Tag::MsrRl);
             }
             if directive.contains("4#") {
-                tags.push("BG-RL".to_owned());
-                tags.push("Badegewässer-Richtlinie".to_owned());
+                tags.push(Tag::BgRl);
             }
         }
 

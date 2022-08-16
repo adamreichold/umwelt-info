@@ -15,7 +15,7 @@ use tantivy::{
     Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
 };
 
-use crate::dataset::Dataset;
+use crate::dataset::{Dataset, TagExt};
 
 fn schema() -> Schema {
     let text = TextOptions::default().set_indexing_options(
@@ -170,7 +170,7 @@ impl Indexer {
 
         doc.add_text(self.fields.license, dataset.license.to_string());
 
-        doc.add_text(self.fields.tags, dataset.tags.join(" "));
+        doc.add_text(self.fields.tags, dataset.tags.join_tokens(" "));
 
         doc.add_u64(self.fields.accesses, accesses);
 
