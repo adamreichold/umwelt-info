@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 
 use crate::{
-    dataset::{Dataset, License},
+    dataset::Dataset,
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -57,7 +57,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
     let dataset = Dataset {
         title,
         description,
-        license: License::Unknown,
+        license: document.license.as_str().into(),
         source_url: source.url.clone().into(),
     };
 
@@ -86,6 +86,9 @@ struct Document {
     name: Option<String>,
     #[serde(rename = "TEASERTEXT")]
     teaser_text: Option<String>,
+    /// An alternative text to TEASERTEXT.
     #[serde(rename = "AUTOTEASERTEXT")]
     auto_teaser_text: Option<String>,
+    #[serde(rename = "LICENSE_NAME_KURZ")]
+    license: String,
 }
