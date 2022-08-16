@@ -5,6 +5,7 @@ use axum::{
 };
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
+use tantivy::schema::Facet;
 use tokio::task::spawn_blocking;
 
 use crate::{
@@ -21,9 +22,10 @@ pub async fn search(
 ) -> Result<Response, ServerError> {
     fn inner(
         params: SearchParams,
+        accept: Accept,
         searcher: &Searcher,
         dir: &Dir,
-    ) -> Result<SearchPage, ServerError> {
+    ) -> Result<Response, ServerError> {
         if params.page == 0 || params.results_per_page == 0 {
             return Err(ServerError::BadRequest(
                 "Page and results per page must not be zero",
@@ -36,26 +38,40 @@ pub async fn search(
             ));
         }
 
-        let (count, docs) = searcher.search(
+        let results = searcher.search(
             &params.query,
             params.results_per_page,
             (params.page - 1) * params.results_per_page,
         )?;
 
-        tracing::debug!("Found {} documents", count);
+        tracing::debug!("Found {} documents", results.count);
 
-        let pages = (count + params.results_per_page - 1) / params.results_per_page;
+        let pages = (results.count + params.results_per_page - 1) / params.results_per_page;
+
+        let licenses = results
+            .licenses
+            .get(results.licenses_root)
+            .chain(results.open_licenses.get(results.open_licenses_root))
+            .collect::<Vec<_>>();
+
+        let provenances = results
+            .provenances
+            .get(results.provenances_root)
+            .chain(results.bund_provenances.get(results.bund_provenances_root))
+            .collect::<Vec<_>>();
 
         let mut page = SearchPage {
             params,
-            count,
+            count: results.count,
             pages,
             results: Vec::new(),
+            licenses,
+            provenances,
         };
 
         let dir = dir.open_dir("datasets")?;
 
-        for doc in docs {
+        for doc in results.iter {
             let (source, id) = doc?;
 
             let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
@@ -67,12 +83,10 @@ pub async fn search(
             });
         }
 
-        Ok(page)
+        Ok(accept.into_repsonse(page))
     }
 
-    let page = spawn_blocking(|| inner(params, searcher, dir)).await??;
-
-    Ok(accept.into_repsonse(page))
+    spawn_blocking(move || inner(params, accept, searcher, dir)).await?
 }
 
 #[derive(Deserialize, Serialize)]
@@ -99,14 +113,16 @@ fn default_results_per_page() -> usize {
 
 #[derive(Template, Serialize)]
 #[template(path = "search.html")]
-struct SearchPage {
+struct SearchPage<'a> {
     params: SearchParams,
     count: usize,
     pages: usize,
     results: Vec<SearchResult>,
+    licenses: Vec<(&'a Facet, u64)>,
+    provenances: Vec<(&'a Facet, u64)>,
 }
 
-impl SearchPage {
+impl SearchPage<'_> {
     fn pages(&self) -> Vec<usize> {
         let mut pages = Vec::new();
 

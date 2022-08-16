@@ -7,7 +7,7 @@
 
   <body>
 
-    <form method="GET">
+    <form id="form" method="GET">
       <input name="query" type="text" value="{{ params.query }}" />
 
       <input name="page" type="hidden" value="{{ params.page }}" />
@@ -16,19 +16,71 @@
       <input type="submit" value="Search" />
     </form>
 
-    <h1>Found {{ count }} results.</h1>
+    <h3>Found {{ count }} results.</h3>
 
-    {% for result in results %}
+    <div style="float: left; width: 85%">
 
-    <div>
-      <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.dataset.title }}</a></h2>
+      {% for result in results %}
 
-      {% if let Some(description) = result.dataset.description %} <p>{{ description }}</p> {% endif %}
+      <div>
+        <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.dataset.title }}</a></h2>
+
+        {% if let Some(description) = result.dataset.description %} <p>{{ description }}</p> {% endif %}
+      </div>
+
+      {% endfor %}
+
     </div>
 
-    {% endfor %}
+    <div style="float: left; width: 15%">
 
-    <p style="text-align: center">
+      <table>
+
+        <thead>
+          <tr>
+            <th>License</th><th>Count</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+        {% for (license, count) in licenses %}
+
+          <tr>
+            <td><a href="javascript:add_facet('license', '{{ license }}')">{{ license }}</a></td><td>{{ count }}</td>
+          </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+      </table>
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Provenance</th><th>Count</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+        {% for (provenance, count) in provenances %}
+
+          <tr>
+            <td><a href="javascript:add_facet('provenance', '{{ provenance }}')">{{ provenance }}</a></td><td>{{ count }}</td>
+          </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div style="clear: left; text-align: center">
 
     {% for page in self.pages() %}
 
@@ -48,7 +100,17 @@
 
     {% endfor %}
 
-    </p>
+    </div>
+
+    <script>
+      const query = document.getElementsByName("query")[0];
+      const form = document.getElementById("form");
+
+      function add_facet(field, value) {
+        query.value += ` +${field}:${value}`;
+        form.submit();
+      }
+    </script>
 
   </body>
 </html>
