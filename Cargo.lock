@@ -2297,6 +2297,7 @@ dependencies = [
  "serde-roxmltree",
  "serde_json",
  "smallvec",
+ "string_cache",
  "tantivy",
  "time",
  "tokio",

@@ -15,6 +15,7 @@ use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
 use futures_util::stream::{iter, StreamExt};
 use hashbrown::HashSet;
 use serde::Deserialize;
+use string_cache::DefaultAtom;
 use toml::from_str;
 use url::Url;
 
@@ -105,7 +106,7 @@ pub struct Source {
     pub name: String,
     pub r#type: Type,
     url: Url,
-    provenance: String,
+    provenance: DefaultAtom,
     filter: Option<String>,
     source_url: Option<String>,
     #[serde(default = "default_concurrency")]
@@ -146,9 +147,9 @@ impl fmt::Debug for Source {
         fmt.debug_struct("Source")
             .field("name", name)
             .field("type", r#type)
-            // The default format of `Url` is too verbose for the logs.
+            // The default formats of `Url` and `DefaultAtom` are too verbose for the logs.
             .field("url", &url.as_str())
-            .field("provenance", provenance)
+            .field("provenance", &provenance.as_ref())
             .field("filter", filter)
             .field("source_url", source_url)
             .field("concurrency", concurrency)
