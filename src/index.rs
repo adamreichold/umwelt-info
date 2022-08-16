@@ -3,7 +3,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use tantivy::{
-    collector::{Count, TopDocs},
+    collector::{Count, FacetCollector, FacetCounts, TopDocs},
     directory::MmapDirectory,
     fastfield::FastFieldReader,
     query::QueryParser,
@@ -81,29 +81,48 @@ impl Searcher {
         query: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<(usize, impl Iterator<Item = Result<(String, String)>> + '_)> {
+    ) -> Result<Results<impl Iterator<Item = Result<(String, String)>> + '_>> {
         let query = self.parser.parse_query(query)?;
         let searcher = self.reader.searcher();
         let accesses = self.fields.accesses;
 
-        let (count, docs) = searcher.search(
-            &query,
-            &(
-                Count,
-                TopDocs::with_limit(limit).and_offset(offset).tweak_score(
-                    move |reader: &SegmentReader| {
-                        let reader = reader.fast_fields().u64(accesses).unwrap();
+        let mut licenses = FacetCollector::for_field(self.fields.license);
+        let licenses_root = Facet::from_path::<[&str; 0]>([]);
+        licenses.add_facet(licenses_root.clone());
 
-                        move |doc, score| {
-                            let accesses: u64 = reader.get(doc);
-                            let boost = ((2 + accesses) as Score).log2();
+        let mut open_licenses = FacetCollector::for_field(self.fields.license);
+        let open_licenses_root = Facet::from_path(["open"]);
+        open_licenses.add_facet(open_licenses_root.clone());
 
-                            boost * score
-                        }
-                    },
+        let mut provenances = FacetCollector::for_field(self.fields.provenance);
+        let provenances_root = Facet::from_path::<[&str; 0]>([]);
+        provenances.add_facet(provenances_root.clone());
+
+        let mut bund_provenances = FacetCollector::for_field(self.fields.provenance);
+        let bund_provenances_root = Facet::from_path(["Bund"]);
+        bund_provenances.add_facet(bund_provenances_root.clone());
+
+        let (count, docs, (licenses, open_licenses), (provenances, bund_provenances)) = searcher
+            .search(
+                &query,
+                &(
+                    Count,
+                    TopDocs::with_limit(limit).and_offset(offset).tweak_score(
+                        move |reader: &SegmentReader| {
+                            let reader = reader.fast_fields().u64(accesses).unwrap();
+
+                            move |doc, score| {
+                                let accesses: u64 = reader.get(doc);
+                                let boost = ((2 + accesses) as Score).log2();
+
+                                boost * score
+                            }
+                        },
+                    ),
+                    (licenses, open_licenses),
+                    (provenances, bund_provenances),
                 ),
-            ),
-        )?;
+            )?;
 
         let iter = docs.into_iter().map(move |(_score, doc)| {
             let doc = searcher.doc(doc)?;
@@ -121,8 +140,32 @@ impl Searcher {
             Ok((source, id))
         });
 
-        Ok((count, iter))
+        Ok(Results {
+            count,
+            iter,
+            licenses,
+            licenses_root,
+            open_licenses,
+            open_licenses_root,
+            provenances,
+            provenances_root,
+            bund_provenances,
+            bund_provenances_root,
+        })
     }
+}
+
+pub struct Results<I> {
+    pub count: usize,
+    pub iter: I,
+    pub licenses: FacetCounts,
+    pub licenses_root: Facet,
+    pub open_licenses: FacetCounts,
+    pub open_licenses_root: Facet,
+    pub provenances: FacetCounts,
+    pub provenances_root: Facet,
+    pub bund_provenances: FacetCounts,
+    pub bund_provenances_root: Facet,
 }
 
 pub struct Indexer {
