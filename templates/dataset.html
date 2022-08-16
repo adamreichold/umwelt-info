@@ -9,6 +9,8 @@
 
     <h1><a href="{{ dataset.source_url }}">{{ dataset.title }}</a></h1>
 
+    <h3>Tags: {{ dataset.tags|join(", ") }}</h3>
+
     <p>{{ dataset.description }}</p>
 
     <p>License: {% if let Some(license_url) = dataset.license.url() %} <a href="{{ license_url }}">{{ dataset.license }}</a> {% else %} {{ dataset.license }} {% endif %}</p>

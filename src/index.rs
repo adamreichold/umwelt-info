@@ -9,7 +9,7 @@ use tantivy::{
     query::QueryParser,
     schema::{
         Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value, FAST, STORED,
-        STRING,
+        STRING, TEXT,
     },
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
     Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
@@ -33,6 +33,8 @@ fn schema() -> Schema {
     schema.add_text_field("description", text);
 
     schema.add_text_field("license", STRING);
+
+    schema.add_text_field("tags", TEXT);
 
     schema.add_u64_field("accesses", FAST);
 
@@ -159,6 +161,8 @@ impl Indexer {
 
         doc.add_text(self.fields.license, dataset.license.to_string());
 
+        doc.add_text(self.fields.tags, dataset.tags.join(" "));
+
         doc.add_u64(self.fields.accesses, accesses);
 
         self.writer.add_document(doc)?;
@@ -179,6 +183,7 @@ struct Fields {
     title: Field,
     description: Field,
     license: Field,
+    tags: Field,
     accesses: Field,
 }
 
@@ -192,6 +197,8 @@ impl Fields {
 
         let license = schema.get_field("license").unwrap();
 
+        let tags = schema.get_field("tags").unwrap();
+
         let accesses = schema.get_field("accesses").unwrap();
 
         Self {
@@ -200,6 +207,7 @@ impl Fields {
             title,
             description,
             license,
+            tags,
             accesses,
         }
     }

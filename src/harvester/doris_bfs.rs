@@ -167,6 +167,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         title,
         description: r#abstract,
         license: License::DorisBfs,
+        tags: Vec::new(),
         source_url: url.into(),
     };
 

@@ -45,6 +45,8 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
 }
 
 async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Result<()> {
+    let tags = document.tags();
+
     let title = document
         .name
         .ok_or_else(|| anyhow!("Document {} has no valid entry for 'NAME'", document.id))?;
@@ -58,6 +60,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         title,
         description,
         license: document.license.as_str().into(),
+        tags,
         source_url: source.url.clone().into(),
     };
 
@@ -91,4 +94,33 @@ struct Document {
     auto_teaser_text: Option<String>,
     #[serde(rename = "LICENSE_NAME_KURZ")]
     license: String,
+    #[serde(rename = "RICHTLINIE_IDS")]
+    directive: Option<String>,
+}
+
+impl Document {
+    fn tags(&self) -> Vec<String> {
+        let mut tags = Vec::new();
+
+        if let Some(directive) = &self.directive {
+            if directive.contains("1#") {
+                tags.push("WRRL".to_owned());
+                tags.push("Wasserrahmenrichtlinie".to_owned());
+            }
+            if directive.contains("2#") {
+                tags.push("HWRM-RL".to_owned());
+                tags.push("Hochwasserrisikomanagement-Richtlinie".to_owned());
+            }
+            if directive.contains("3#") {
+                tags.push("MSR-RL".to_owned());
+                tags.push("Meeresstrategie-Rahmenrichtlinie".to_owned());
+            }
+            if directive.contains("4#") {
+                tags.push("BG-RL".to_owned());
+                tags.push("Badegewässer-Richtlinie".to_owned());
+            }
+        }
+
+        tags
+    }
 }

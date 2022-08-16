@@ -111,6 +111,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> 
         title: package.title,
         description: package.notes.unwrap_or_default(),
         license,
+        tags: Vec::new(),
         source_url: source.source_url().replace("{{name}}", &package.name),
     };
 
