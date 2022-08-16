@@ -98,6 +98,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> 
         title: package.title,
         description: package.notes,
         comment: None,
+        provenance: source.provenance.clone(),
         license,
         contacts: Vec::new(),
         tags: Vec::new(),

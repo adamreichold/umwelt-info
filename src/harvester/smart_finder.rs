@@ -77,6 +77,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, doc: Document<'_>) -> Res
         title: doc.title,
         description: Some(doc.description),
         comment: None,
+        provenance: source.provenance.clone(),
         license: License::Unknown,
         contacts: Vec::new(),
         tags: Vec::new(),

@@ -2,6 +2,7 @@
 name = "stadt-leipzig"
 type = "ckan"
 url = "https://opendata.leipzig.de/"
+provenance = "/Kommune/Stadt Leipzig"
 source_url = "https://opendata.leipzig.de/dataset/{{name}}"
 concurrency = 3
 
@@ -9,6 +10,7 @@ concurrency = 3
 name = "govdata"
 type = "ckan"
 url = "https://www.govdata.de/ckan/"
+provenance = "/Bund/IT-Planungsrat/GovData"
 source_url = "https://www.govdata.de/web/guest/suchen/-/details/{{name}}"
 concurrency = 5
 batch_size = 1000
@@ -17,6 +19,7 @@ batch_size = 1000
 name = "geodatenkatalog"
 type = "geo_network_q"
 url = "http://gdk.gdi-de.org/gdi-de/srv/ger/q"
+provenance = "/Bund/BKG/GDI-DE/geodatenkatalog"
 filter = "environment"
 source_url = "http://gdk.gdi-de.org/gdi-de/srv/ger/catalog.search#/metadata/{{id}}"
 concurrency = 5
@@ -25,17 +28,20 @@ concurrency = 5
 name = "uba-gdi"
 type = "csw"
 url = "https://gis.uba.de/smartfinder-csw/api"
+provenance = "/Bund/UBA/GDI"
 source_url = "https://gis.uba.de/smartfinder-client/?lang=de#/datasets/iso/{{id}}"
 
 [[sources]]
 name = "wasser-de"
 type = "wasser_de"
 url = "https://www.wasser-de.de/"
+provenance = "/Bund/BfG/Wasser-DE"
 
 [[sources]]
 name = "doris-bfs"
 type = "doris_bfs"
 url = "https://doris.bfs.de/"
+provenance = "/Bund/BfS/DORIS"
 batch_size = 10
 concurrency = 5
 
@@ -43,4 +49,5 @@ concurrency = 5
 name = "geodatenkatalog-bfg"
 type = "smart_finder"
 url = "https://geoportal.bafg.de/smartfinderServer/iso/select"
+provenance = "/Bund/BfG/Geoportal"
 source_url = "https://geoportal.bafg.de/smartfinderClient/js/apps/portal-integration/index.html?lang=de#/datasets/iso/{{id}}"

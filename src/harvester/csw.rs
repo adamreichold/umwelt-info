@@ -99,6 +99,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -
         title,
         description,
         comment: None,
+        provenance: source.provenance.clone(),
         license,
         contacts: Vec::new(),
         tags: Vec::new(),

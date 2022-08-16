@@ -148,6 +148,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         title,
         description: r#abstract,
         comment: None,
+        provenance: source.provenance.clone(),
         license: License::DorisBfs,
         contacts: Vec::new(),
         tags: Vec::new(),
