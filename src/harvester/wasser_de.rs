@@ -114,6 +114,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         title,
         description,
         comment: document.comment,
+        provenance: source.provenance.clone(),
         license: document.license.as_str().into(),
         contacts,
         tags,

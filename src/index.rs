@@ -34,6 +34,7 @@ fn schema() -> Schema {
 
     schema.add_text_field("comment", text);
 
+    schema.add_facet_field("provenance", FacetOptions::default());
     schema.add_facet_field("license", FacetOptions::default());
 
     schema.add_text_field("tags", STRING);
@@ -168,6 +169,11 @@ impl Indexer {
             doc.add_text(self.fields.comment, comment);
         }
 
+        doc.add_facet(
+            self.fields.provenance,
+            Facet::from_text(&dataset.provenance)?,
+        );
+
         dataset.license.with_facet(|path| {
             doc.add_facet(self.fields.license, Facet::from_path(path));
         });
@@ -200,6 +206,7 @@ struct Fields {
     title: Field,
     description: Field,
     comment: Field,
+    provenance: Field,
     license: Field,
     tags: Field,
     accesses: Field,
@@ -214,6 +221,7 @@ impl Fields {
         let description = schema.get_field("description").unwrap();
         let comment = schema.get_field("comment").unwrap();
 
+        let provenance = schema.get_field("provenance").unwrap();
         let license = schema.get_field("license").unwrap();
 
         let tags = schema.get_field("tags").unwrap();
@@ -226,6 +234,7 @@ impl Fields {
             title,
             description,
             comment,
+            provenance,
             license,
             tags,
             accesses,

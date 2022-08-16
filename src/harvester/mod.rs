@@ -105,6 +105,7 @@ pub struct Source {
     pub name: String,
     pub r#type: Type,
     url: Url,
+    provenance: String,
     filter: Option<String>,
     source_url: Option<String>,
     #[serde(default = "default_concurrency")]
@@ -135,6 +136,7 @@ impl fmt::Debug for Source {
             name,
             r#type,
             url,
+            provenance,
             filter,
             source_url,
             concurrency,
@@ -146,6 +148,7 @@ impl fmt::Debug for Source {
             .field("type", r#type)
             // The default format of `Url` is too verbose for the logs.
             .field("url", &url.as_str())
+            .field("provenance", provenance)
             .field("filter", filter)
             .field("source_url", source_url)
             .field("concurrency", concurrency)
