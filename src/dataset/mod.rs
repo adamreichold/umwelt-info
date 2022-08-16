@@ -1,6 +1,7 @@
 mod contact;
 mod license;
 mod resource;
+mod tag;
 
 use std::io::Read;
 
@@ -15,6 +16,7 @@ use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 pub use contact::Contact;
 pub use license::License;
 pub use resource::{Resource, Type as ResourceType};
+pub use tag::{Tag, TagExt};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Dataset {
@@ -23,7 +25,7 @@ pub struct Dataset {
     pub comment: Option<String>,
     pub license: License,
     pub contacts: Vec<Contact>,
-    pub tags: Vec<String>,
+    pub tags: Vec<Tag>,
     pub region: Option<String>,
     pub issued: Option<Date>,
     pub last_checked: Option<Date>,
@@ -63,7 +65,7 @@ impl Dataset {
                     comment: None,
                     license: old_val.license,
                     contacts: Vec::new(),
-                    tags: old_val.tags,
+                    tags: old_val.tags.into_iter().map(Into::into).collect(),
                     region: None,
                     issued: old_val.issued,
                     last_checked: None,
