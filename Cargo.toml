@@ -27,6 +27,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde-roxmltree = "0.3"
 smallvec = { version = "1.9", features = ["union", "const_generics", "serde"] }
+string_cache = "0.8"
 tantivy = { version = "0.18", default-features = false, features = ["mmap"] }
 time = { version = "0.3", features = ["formatting", "macros"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "fs", "parking_lot"] }

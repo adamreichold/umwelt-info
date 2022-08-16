@@ -10,6 +10,7 @@ use bincode::{deserialize, serialize};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use string_cache::DefaultAtom;
 use time::Date;
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
@@ -23,7 +24,7 @@ pub struct Dataset {
     pub title: String,
     pub description: Option<String>,
     pub comment: Option<String>,
-    pub provenance: String,
+    pub provenance: DefaultAtom,
     pub license: License,
     pub contacts: Vec<Contact>,
     pub tags: Vec<Tag>,
@@ -64,7 +65,7 @@ impl Dataset {
                     title: old_val.title,
                     description: Some(old_val.description),
                     comment: None,
-                    provenance: "/".to_owned(),
+                    provenance: DefaultAtom::from("/"),
                     license: old_val.license,
                     contacts: Vec::new(),
                     tags: old_val.tags.into_iter().map(Into::into).collect(),
