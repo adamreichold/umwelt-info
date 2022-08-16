@@ -117,6 +117,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -
         title,
         description,
         license,
+        tags: Vec::new(),
         source_url: source.source_url().replace("{{id}}", identifier),
     };
 

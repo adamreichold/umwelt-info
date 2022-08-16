@@ -15,6 +15,7 @@ pub struct Dataset {
     pub title: String,
     pub description: String,
     pub license: License,
+    pub tags: Vec<String>,
     pub source_url: String,
 }
 
@@ -41,6 +42,7 @@ impl Dataset {
                     title: old_val.title,
                     description: old_val.description,
                     license: License::Unknown,
+                    tags: Vec::new(),
                     source_url: old_val.source_url,
                 }
             }
