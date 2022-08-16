@@ -54,6 +54,29 @@ impl License {
 
         Some(val)
     }
+
+    pub fn with_facet<F>(&self, f: F)
+    where
+        F: FnOnce(&[&str]),
+    {
+        let val = match self {
+            Self::Unknown => &["unknown"][..],
+            Self::Other(val) => return f(&["other", val]),
+            Self::DlDeBy20 => &["open", "dl-de", "by", "2.0"],
+            Self::DlDeZero20 => &["open", "dl-de", "zero", "2.0"],
+            Self::CcBy40 => &["open", "cc", "by", "4.0"],
+            Self::CcBy10 => &["open", "cc", "by", "1.0"],
+            Self::CcBySa10 => &["open", "cc", "by-sa", "1.0"],
+            Self::CcByNcSa10 => &["open", "cc", "by-nc-sa", "1.0"],
+            Self::CcByNcNd10 => &["open", "cc", "by-nc-nd", "1.0"],
+            Self::OfficialWork => &["open", "officialWork"],
+            Self::DorisBfs => &["open", "doris-bfs"],
+            Self::GeoNutz20130319 => &["open", "geoNutz", "20130319"],
+            Self::GeoNutz20131001 => &["open", "geoNutz", "20131001"],
+        };
+
+        f(val);
+    }
 }
 
 impl From<&'_ str> for License {

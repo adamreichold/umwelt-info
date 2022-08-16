@@ -8,8 +8,8 @@ use tantivy::{
     fastfield::FastFieldReader,
     query::QueryParser,
     schema::{
-        Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value, FAST, STORED,
-        STRING,
+        Facet, FacetOptions, Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions,
+        Value, FAST, STORED, STRING,
     },
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
     Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
@@ -34,7 +34,7 @@ fn schema() -> Schema {
 
     schema.add_text_field("comment", text);
 
-    schema.add_text_field("license", STRING);
+    schema.add_facet_field("license", FacetOptions::default());
 
     schema.add_text_field("tags", STRING);
 
@@ -168,7 +168,9 @@ impl Indexer {
             doc.add_text(self.fields.comment, comment);
         }
 
-        doc.add_text(self.fields.license, dataset.license.to_string());
+        dataset.license.with_facet(|path| {
+            doc.add_facet(self.fields.license, Facet::from_path(path));
+        });
 
         for tag in dataset.tags {
             tag.with_tokens(|tokens| {
