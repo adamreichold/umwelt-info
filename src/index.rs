@@ -9,9 +9,12 @@ use tantivy::{
     query::QueryParser,
     schema::{
         Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value, FAST, STORED,
-        STRING, TEXT,
+        STRING,
     },
-    tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
+    tokenizer::{
+        Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer,
+        WhitespaceTokenizer,
+    },
     Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
 };
 
@@ -22,6 +25,12 @@ fn schema() -> Schema {
         TextFieldIndexing::default()
             .set_index_option(IndexRecordOption::WithFreqsAndPositions)
             .set_tokenizer("de_stem"),
+    );
+
+    let tags = TextOptions::default().set_indexing_options(
+        TextFieldIndexing::default()
+            .set_fieldnorms(false)
+            .set_tokenizer("tags"),
     );
 
     let mut schema = Schema::builder();
@@ -36,20 +45,24 @@ fn schema() -> Schema {
 
     schema.add_text_field("license", STRING);
 
-    schema.add_text_field("tags", TEXT);
+    schema.add_text_field("tags", tags);
 
     schema.add_u64_field("accesses", FAST);
 
     schema.build()
 }
 
-fn register_tokenizer(index: &Index) {
+fn register_tokenizers(index: &Index) {
     let de_stem = TextAnalyzer::from(SimpleTokenizer)
         .filter(RemoveLongFilter::limit(40))
         .filter(LowerCaser)
         .filter(Stemmer::new(Language::German));
 
     index.tokenizers().register("de_stem", de_stem);
+
+    let tags = TextAnalyzer::from(WhitespaceTokenizer);
+
+    index.tokenizers().register("tags", tags);
 }
 
 pub struct Searcher {
@@ -61,7 +74,7 @@ pub struct Searcher {
 impl Searcher {
     pub fn open(data_path: &Path) -> Result<Self> {
         let index = Index::open_in_dir(data_path.join("index"))?;
-        register_tokenizer(&index);
+        register_tokenizers(&index);
 
         let fields = Fields::new(&index.schema());
 
@@ -138,7 +151,7 @@ impl Indexer {
         let fields = Fields::new(&schema);
 
         let index = Index::open_or_create(MmapDirectory::open(index_path)?, schema)?;
-        register_tokenizer(&index);
+        register_tokenizers(&index);
 
         let writer = index.writer(128 << 20)?;
         writer.delete_all_documents()?;
