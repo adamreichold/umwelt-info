@@ -11,26 +11,17 @@ use tantivy::{
         Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value, FAST, STORED,
         STRING,
     },
-    tokenizer::{
-        Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer,
-        WhitespaceTokenizer,
-    },
+    tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
     Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
 };
 
-use crate::dataset::{Dataset, TagExt};
+use crate::dataset::Dataset;
 
 fn schema() -> Schema {
     let text = TextOptions::default().set_indexing_options(
         TextFieldIndexing::default()
             .set_index_option(IndexRecordOption::WithFreqsAndPositions)
             .set_tokenizer("de_stem"),
-    );
-
-    let tags = TextOptions::default().set_indexing_options(
-        TextFieldIndexing::default()
-            .set_fieldnorms(false)
-            .set_tokenizer("tags"),
     );
 
     let mut schema = Schema::builder();
@@ -45,7 +36,7 @@ fn schema() -> Schema {
 
     schema.add_text_field("license", STRING);
 
-    schema.add_text_field("tags", tags);
+    schema.add_text_field("tags", STRING);
 
     schema.add_u64_field("accesses", FAST);
 
@@ -59,10 +50,6 @@ fn register_tokenizers(index: &Index) {
         .filter(Stemmer::new(Language::German));
 
     index.tokenizers().register("de_stem", de_stem);
-
-    let tags = TextAnalyzer::from(WhitespaceTokenizer);
-
-    index.tokenizers().register("tags", tags);
 }
 
 pub struct Searcher {
@@ -183,7 +170,13 @@ impl Indexer {
 
         doc.add_text(self.fields.license, dataset.license.to_string());
 
-        doc.add_text(self.fields.tags, dataset.tags.join_tokens(" "));
+        for tag in dataset.tags {
+            tag.with_tokens(|tokens| {
+                for token in tokens {
+                    doc.add_text(self.fields.tags, token.to_owned());
+                }
+            });
+        }
 
         doc.add_u64(self.fields.accesses, accesses);
 

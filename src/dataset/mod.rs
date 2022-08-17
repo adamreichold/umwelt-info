@@ -16,7 +16,7 @@ use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 pub use contact::Contact;
 pub use license::License;
 pub use resource::{Resource, Type as ResourceType};
-pub use tag::{Tag, TagExt};
+pub use tag::Tag;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Dataset {

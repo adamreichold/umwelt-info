@@ -44,7 +44,7 @@ impl fmt::Display for Tag {
 }
 
 impl Tag {
-    fn with_tokens<F>(&self, f: F)
+    pub fn with_tokens<F>(&self, f: F)
     where
         F: FnOnce(&[&str]),
     {
@@ -65,77 +65,5 @@ impl Tag {
         };
 
         f(val)
-    }
-}
-
-pub trait TagExt {
-    fn join_tokens(&self, separator: &str) -> String;
-}
-
-impl TagExt for [Tag] {
-    fn join_tokens(&self, separator: &str) -> String {
-        let mut val = String::new();
-
-        let mut tags = self.iter();
-
-        if let Some(tag) = tags.next() {
-            tag.with_tokens(|tokens| {
-                let mut tokens = tokens.iter();
-
-                if let Some(token) = tokens.next() {
-                    val.push_str(token);
-                }
-
-                for token in tokens {
-                    val.push_str(separator);
-                    val.push_str(token);
-                }
-            });
-        }
-
-        for tag in tags {
-            tag.with_tokens(|tokens| {
-                for token in tokens {
-                    val.push_str(separator);
-                    val.push_str(token);
-                }
-            });
-        }
-
-        val
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn join_single_tag_single_token() {
-        assert_eq!([Tag::from("foobar")].join_tokens(", "), "foobar");
-    }
-
-    #[test]
-    fn join_single_tag_multiple_tokens() {
-        assert_eq!(
-            [Tag::Wrrl].join_tokens(", "),
-            "WRRL, Wasserrahmenrichtlinie, Wasserrahmen-Richtlinie"
-        );
-    }
-
-    #[test]
-    fn join_multiple_tags_single_token() {
-        assert_eq!(
-            [Tag::from("foo"), Tag::from("bar")].join_tokens(", "),
-            "foo, bar"
-        );
-    }
-
-    #[test]
-    fn join_multiple_tags_multiple_tokens() {
-        assert_eq!(
-            [Tag::Wrrl, Tag::HwrmRl].join_tokens(", "),
-            "WRRL, Wasserrahmenrichtlinie, Wasserrahmen-Richtlinie, HWRM-RL, Hochwasserrisikomanagement-Richtlinie, Hochwasserrisikomanagementrichtlinie"
-        );
     }
 }
