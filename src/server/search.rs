@@ -48,14 +48,14 @@ pub async fn search(
 
         let pages = (results.count + params.results_per_page - 1) / params.results_per_page;
 
-        let licenses = results
-            .licenses
-            .get(results.licenses_root)
-            .collect::<Vec<_>>();
-
         let provenances = results
             .provenances
             .get(results.provenances_root)
+            .collect::<Vec<_>>();
+
+        let licenses = results
+            .licenses
+            .get(results.licenses_root)
             .collect::<Vec<_>>();
 
         let mut page = SearchPage {
@@ -63,8 +63,8 @@ pub async fn search(
             count: results.count,
             pages,
             results: Vec::new(),
-            licenses,
             provenances,
+            licenses,
         };
 
         let dir = dir.open_dir("datasets")?;
@@ -116,8 +116,8 @@ struct SearchPage<'a> {
     count: usize,
     pages: usize,
     results: Vec<SearchResult>,
-    licenses: Vec<(&'a Facet, u64)>,
     provenances: Vec<(&'a Facet, u64)>,
+    licenses: Vec<(&'a Facet, u64)>,
 }
 
 impl SearchPage<'_> {

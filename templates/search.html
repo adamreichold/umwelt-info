@@ -34,32 +34,6 @@
 
     <div style="float: left; width: 15%">
 
-      {% if !licenses.is_empty() %}
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>License</th><th>Count</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-        {% for (license, count) in licenses %}
-
-          <tr>
-            <td><a href="javascript:add_facet('license', '{{ license }}')">{{ license }}</a></td><td>{{ count }}</td>
-          </tr>
-
-        {% endfor %}
-
-        </tbody>
-
-      </table>
-
-      {% endif %}
-
       {% if !provenances.is_empty() %}
 
       <table>
@@ -76,6 +50,32 @@
 
           <tr>
             <td><a href="javascript:add_facet('provenance', '{{ provenance }}')">{{ provenance }}</a></td><td>{{ count }}</td>
+          </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+      </table>
+
+      {% endif %}
+
+      {% if !licenses.is_empty() %}
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>License</th><th>Count</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+        {% for (license, count) in licenses %}
+
+          <tr>
+            <td><a href="javascript:add_facet('license', '{{ license }}')">{{ license }}</a></td><td>{{ count }}</td>
           </tr>
 
         {% endfor %}

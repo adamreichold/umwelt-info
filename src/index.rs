@@ -87,8 +87,8 @@ impl Searcher {
         let searcher = self.reader.searcher();
         let accesses = self.fields.accesses;
 
-        let mut licenses_root = Facet::root();
         let mut provenances_root = Facet::root();
+        let mut licenses_root = Facet::root();
 
         let mut terms = BTreeMap::new();
         query.query_terms(&mut terms);
@@ -96,20 +96,20 @@ impl Searcher {
         for (term, _) in terms {
             let field = term.field();
 
-            if field == self.fields.license {
-                take_if_more_specific(&mut licenses_root, term);
-            } else if field == self.fields.provenance {
+            if field == self.fields.provenance {
                 take_if_more_specific(&mut provenances_root, term);
+            } else if field == self.fields.license {
+                take_if_more_specific(&mut licenses_root, term);
             }
         }
-
-        let mut licenses = FacetCollector::for_field(self.fields.license);
-        licenses.add_facet(licenses_root.clone());
 
         let mut provenances = FacetCollector::for_field(self.fields.provenance);
         provenances.add_facet(provenances_root.clone());
 
-        let (count, docs, licenses, provenances) = searcher.search(
+        let mut licenses = FacetCollector::for_field(self.fields.license);
+        licenses.add_facet(licenses_root.clone());
+
+        let (count, docs, provenances, licenses) = searcher.search(
             &query,
             &(
                 Count,
@@ -125,8 +125,8 @@ impl Searcher {
                         }
                     },
                 ),
-                licenses,
                 provenances,
+                licenses,
             ),
         )?;
 
@@ -149,10 +149,10 @@ impl Searcher {
         Ok(Results {
             count,
             iter,
-            licenses,
-            licenses_root,
             provenances,
             provenances_root,
+            licenses,
+            licenses_root,
         })
     }
 }
@@ -160,10 +160,10 @@ impl Searcher {
 pub struct Results<I> {
     pub count: usize,
     pub iter: I,
-    pub licenses: FacetCounts,
-    pub licenses_root: Facet,
     pub provenances: FacetCounts,
     pub provenances_root: Facet,
+    pub licenses: FacetCounts,
+    pub licenses_root: Facet,
 }
 
 pub struct Indexer {
