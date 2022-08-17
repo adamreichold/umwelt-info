@@ -51,13 +51,11 @@ pub async fn search(
         let licenses = results
             .licenses
             .get(results.licenses_root)
-            .chain(results.open_licenses.get(results.open_licenses_root))
             .collect::<Vec<_>>();
 
         let provenances = results
             .provenances
             .get(results.provenances_root)
-            .chain(results.bund_provenances.get(results.bund_provenances_root))
             .collect::<Vec<_>>();
 
         let mut page = SearchPage {

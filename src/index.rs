@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
@@ -12,7 +13,7 @@ use tantivy::{
         Value, FAST, STORED, STRING,
     },
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
-    Document, Index, IndexReader, IndexWriter, Score, SegmentReader,
+    Document, Index, IndexReader, IndexWriter, Score, SegmentReader, Term,
 };
 
 use crate::dataset::Dataset;
@@ -86,43 +87,48 @@ impl Searcher {
         let searcher = self.reader.searcher();
         let accesses = self.fields.accesses;
 
+        let mut licenses_root = Facet::root();
+        let mut provenances_root = Facet::root();
+
+        let mut terms = BTreeMap::new();
+        query.query_terms(&mut terms);
+
+        for (term, _) in terms {
+            let field = term.field();
+
+            if field == self.fields.license {
+                take_if_more_specific(&mut licenses_root, term);
+            } else if field == self.fields.provenance {
+                take_if_more_specific(&mut provenances_root, term);
+            }
+        }
+
         let mut licenses = FacetCollector::for_field(self.fields.license);
-        let licenses_root = Facet::from_path::<[&str; 0]>([]);
         licenses.add_facet(licenses_root.clone());
 
-        let mut open_licenses = FacetCollector::for_field(self.fields.license);
-        let open_licenses_root = Facet::from_path(["open"]);
-        open_licenses.add_facet(open_licenses_root.clone());
-
         let mut provenances = FacetCollector::for_field(self.fields.provenance);
-        let provenances_root = Facet::from_path::<[&str; 0]>([]);
         provenances.add_facet(provenances_root.clone());
 
-        let mut bund_provenances = FacetCollector::for_field(self.fields.provenance);
-        let bund_provenances_root = Facet::from_path(["Bund"]);
-        bund_provenances.add_facet(bund_provenances_root.clone());
+        let (count, docs, licenses, provenances) = searcher.search(
+            &query,
+            &(
+                Count,
+                TopDocs::with_limit(limit).and_offset(offset).tweak_score(
+                    move |reader: &SegmentReader| {
+                        let reader = reader.fast_fields().u64(accesses).unwrap();
 
-        let (count, docs, (licenses, open_licenses), (provenances, bund_provenances)) = searcher
-            .search(
-                &query,
-                &(
-                    Count,
-                    TopDocs::with_limit(limit).and_offset(offset).tweak_score(
-                        move |reader: &SegmentReader| {
-                            let reader = reader.fast_fields().u64(accesses).unwrap();
+                        move |doc, score| {
+                            let accesses: u64 = reader.get(doc);
+                            let boost = ((2 + accesses) as Score).log2();
 
-                            move |doc, score| {
-                                let accesses: u64 = reader.get(doc);
-                                let boost = ((2 + accesses) as Score).log2();
-
-                                boost * score
-                            }
-                        },
-                    ),
-                    (licenses, open_licenses),
-                    (provenances, bund_provenances),
+                            boost * score
+                        }
+                    },
                 ),
-            )?;
+                licenses,
+                provenances,
+            ),
+        )?;
 
         let iter = docs.into_iter().map(move |(_score, doc)| {
             let doc = searcher.doc(doc)?;
@@ -145,12 +151,8 @@ impl Searcher {
             iter,
             licenses,
             licenses_root,
-            open_licenses,
-            open_licenses_root,
             provenances,
             provenances_root,
-            bund_provenances,
-            bund_provenances_root,
         })
     }
 }
@@ -160,12 +162,8 @@ pub struct Results<I> {
     pub iter: I,
     pub licenses: FacetCounts,
     pub licenses_root: Facet,
-    pub open_licenses: FacetCounts,
-    pub open_licenses_root: Facet,
     pub provenances: FacetCounts,
     pub provenances_root: Facet,
-    pub bund_provenances: FacetCounts,
-    pub bund_provenances_root: Facet,
 }
 
 pub struct Indexer {
@@ -281,6 +279,14 @@ impl Fields {
             license,
             tags,
             accesses,
+        }
+    }
+}
+
+fn take_if_more_specific(root: &mut Facet, term: Term) {
+    if let Some(facet) = term.as_facet() {
+        if root.is_root() || root.is_prefix_of(&facet) {
+            *root = facet;
         }
     }
 }
