@@ -7,7 +7,7 @@ use hashbrown::HashMap;
 use tokio::task::spawn_blocking;
 
 use crate::{
-    dataset::License,
+    dataset::{License, Tag},
     metrics::{Harvest as HarvestMetrics, Metrics},
     server::{filters, stats::Stats, ServerError},
 };
@@ -93,9 +93,19 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         licenses.sort_unstable_by_key(|(_, count)| Reverse(*count));
 
-        let sum_other = licenses
+        let sum_other_licenses = licenses
             .iter()
             .filter(|(license, _)| license.is_other())
+            .map(|(_, count)| *count)
+            .sum();
+
+        let mut tags = metrics.tags.into_iter().collect::<Vec<_>>();
+
+        tags.sort_unstable_by_key(|(_, count)| Reverse(*count));
+
+        let sum_other_tags = tags
+            .iter()
+            .filter(|(tag, _)| matches!(tag, Tag::Other(_)))
             .map(|(_, count)| *count)
             .sum();
 
@@ -107,8 +117,10 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
             sum_transmitted,
             sum_failed,
             licenses,
-            sum_other,
             licenses_by_source,
+            sum_other_licenses,
+            tags,
+            sum_other_tags,
         };
 
         let page = Html(page.render().unwrap());
@@ -129,6 +141,8 @@ struct MetricsPage {
     sum_transmitted: usize,
     sum_failed: usize,
     licenses: Vec<(License, usize)>,
-    sum_other: usize,
     licenses_by_source: Vec<(String, f64, f64)>,
+    sum_other_licenses: usize,
+    tags: Vec<(Tag, usize)>,
+    sum_other_tags: usize,
 }
