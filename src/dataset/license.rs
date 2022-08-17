@@ -55,13 +55,10 @@ impl License {
         Some(val)
     }
 
-    pub fn with_facet<F>(&self, f: F)
-    where
-        F: FnOnce(&[&str]),
-    {
-        let val = match self {
-            Self::Unknown => &["unknown"][..],
-            Self::Other(val) => return f(&["other", val]),
+    pub fn facet(&self) -> &[&str] {
+        match self {
+            Self::Unknown => &["unknown"],
+            Self::Other(_val) => &["other"],
             Self::DlDeBy20 => &["open", "dl-de", "by", "2.0"],
             Self::DlDeZero20 => &["open", "dl-de", "zero", "2.0"],
             Self::CcBy40 => &["open", "cc", "by", "4.0"],
@@ -73,9 +70,7 @@ impl License {
             Self::DorisBfs => &["open", "doris-bfs"],
             Self::GeoNutz20130319 => &["open", "geoNutz", "20130319"],
             Self::GeoNutz20131001 => &["open", "geoNutz", "20131001"],
-        };
-
-        f(val);
+        }
     }
 }
 
