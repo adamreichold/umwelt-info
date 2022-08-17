@@ -8,8 +8,9 @@ pub mod wasser_de;
 use std::fmt;
 use std::io::Read;
 
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
+use hashbrown::HashSet;
 use serde::Deserialize;
 use toml::from_str;
 use url::Url;
@@ -42,7 +43,19 @@ impl Config {
 
         let mut buf = String::new();
         file.read_to_string(&mut buf)?;
-        let val = from_str(&buf)?;
+        let val = from_str::<Self>(&buf)?;
+
+        {
+            let mut source_names = HashSet::new();
+
+            for source in &val.sources {
+                ensure!(
+                    source_names.insert(&source.name),
+                    "Source names must be unique but {} was used twice",
+                    source.name
+                );
+            }
+        }
 
         Ok(val)
     }
