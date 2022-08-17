@@ -81,7 +81,7 @@
           {% endfor %}
 
           <tr>
-            <td><b>Other</b></td><td><b>{{ sum_other }}</b></td>
+            <td><b>Other</b></td><td><b>{{ sum_other_licenses }}</b></td>
           </tr>
 
         </tbody>
@@ -107,6 +107,32 @@
 
         </tbody>
       </table>
+    </details>
+
+
+    <details>
+      <summary>Tags</summary>
+  
+      <table>
+        <thead>
+          <th>Tag</th><th>Count</th>
+        </thead>
+  
+        <tbody>
+          {% for (tag, count) in tags %}
+  
+          <tr>
+            <td>{{ tag }}</td><td>{{ count }}</td>
+          </tr>
+  
+          {% endfor %}
+  
+          <tr>
+            <td><b>Other</b></td><td><b>{{ sum_other_tags }}</b></td>
+          </tr>
+  
+          </tbody>
+        </table>
     </details>
 
   </body>

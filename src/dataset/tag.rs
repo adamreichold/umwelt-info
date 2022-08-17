@@ -11,6 +11,12 @@ pub enum Tag {
     BgRl,
 }
 
+impl From<&'_ Tag> for Tag {
+    fn from(val: &Tag) -> Self {
+        val.clone()
+    }
+}
+
 impl From<String> for Tag {
     fn from(val: String) -> Self {
         Self::Other(val)

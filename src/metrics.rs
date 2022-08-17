@@ -7,12 +7,13 @@ use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::dataset::{Dataset, License};
+use crate::dataset::{Dataset, License, Tag};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Metrics {
     pub harvests: HashMap<String, Harvest>,
     pub licenses: HashMap<String, HashMap<License, usize>>,
+    pub tags: HashMap<Tag, usize>,
 }
 
 impl Metrics {
@@ -59,6 +60,7 @@ impl Metrics {
 
     pub fn clear_datasets(&mut self) {
         self.licenses.clear();
+        self.tags.clear();
     }
 
     pub fn record_dataset(&mut self, source: &str, dataset: &Dataset) {
@@ -68,6 +70,10 @@ impl Metrics {
             .or_default()
             .entry_ref(&dataset.license)
             .or_default() += 1;
+
+        for tag in &dataset.tags {
+            *self.tags.entry_ref(tag).or_default() += 1;
+        }
     }
 }
 
