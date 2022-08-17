@@ -215,9 +215,10 @@ impl Indexer {
             Facet::from_text(&dataset.provenance)?,
         );
 
-        dataset.license.with_facet(|path| {
-            doc.add_facet(self.fields.license, Facet::from_path(path));
-        });
+        doc.add_facet(
+            self.fields.license,
+            Facet::from_path(dataset.license.facet()),
+        );
 
         for tag in dataset.tags {
             tag.with_tokens(|tokens| {
