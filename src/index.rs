@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
@@ -7,7 +6,7 @@ use tantivy::{
     collector::{Count, FacetCollector, FacetCounts, TopDocs},
     directory::MmapDirectory,
     fastfield::FastFieldReader,
-    query::QueryParser,
+    query::{BooleanQuery, QueryParser, TermQuery},
     schema::{
         Facet, FacetOptions, Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions,
         Value, FAST, STORED, STRING,
@@ -80,6 +79,8 @@ impl Searcher {
     pub fn search(
         &self,
         query: &str,
+        provenances_root: &Facet,
+        licenses_root: &Facet,
         limit: usize,
         offset: usize,
     ) -> Result<Results<impl Iterator<Item = Result<(String, String)>> + '_>> {
@@ -87,21 +88,21 @@ impl Searcher {
         let searcher = self.reader.searcher();
         let accesses = self.fields.accesses;
 
-        let mut provenances_root = Facet::root();
-        let mut licenses_root = Facet::root();
+        let provenances_query = TermQuery::new(
+            Term::from_facet(self.fields.provenance, provenances_root),
+            IndexRecordOption::Basic,
+        );
 
-        let mut terms = BTreeMap::new();
-        query.query_terms(&mut terms);
+        let licenses_query = TermQuery::new(
+            Term::from_facet(self.fields.license, licenses_root),
+            IndexRecordOption::Basic,
+        );
 
-        for (term, _) in terms {
-            let field = term.field();
-
-            if field == self.fields.provenance {
-                take_if_more_specific(&mut provenances_root, term);
-            } else if field == self.fields.license {
-                take_if_more_specific(&mut licenses_root, term);
-            }
-        }
+        let query = BooleanQuery::intersection(vec![
+            query,
+            Box::new(provenances_query),
+            Box::new(licenses_query),
+        ]);
 
         let mut provenances = FacetCollector::for_field(self.fields.provenance);
         provenances.add_facet(provenances_root.clone());
@@ -150,9 +151,7 @@ impl Searcher {
             count,
             iter,
             provenances,
-            provenances_root,
             licenses,
-            licenses_root,
         })
     }
 }
@@ -161,9 +160,7 @@ pub struct Results<I> {
     pub count: usize,
     pub iter: I,
     pub provenances: FacetCounts,
-    pub provenances_root: Facet,
     pub licenses: FacetCounts,
-    pub licenses_root: Facet,
 }
 
 pub struct Indexer {
@@ -280,14 +277,6 @@ impl Fields {
             license,
             tags,
             accesses,
-        }
-    }
-}
-
-fn take_if_more_specific(root: &mut Facet, term: Term) {
-    if let Some(facet) = term.as_facet() {
-        if root.is_root() || root.is_prefix_of(&facet) {
-            *root = facet;
         }
     }
 }

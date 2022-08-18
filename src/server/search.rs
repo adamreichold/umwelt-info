@@ -1,10 +1,15 @@
+use std::borrow::Cow;
+
 use askama::Template;
 use axum::{
     extract::{Extension, Query},
     response::Response,
 };
 use cap_std::fs::Dir;
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{Deserializer, Error},
+    Deserialize, Serialize,
+};
 use tantivy::schema::Facet;
 use tokio::task::spawn_blocking;
 
@@ -40,6 +45,8 @@ pub async fn search(
 
         let results = searcher.search(
             &params.query,
+            &params.provenances_root,
+            &params.licenses_root,
             params.results_per_page,
             (params.page - 1) * params.results_per_page,
         )?;
@@ -50,12 +57,12 @@ pub async fn search(
 
         let provenances = results
             .provenances
-            .get(results.provenances_root)
+            .get(params.provenances_root.clone())
             .collect::<Vec<_>>();
 
         let licenses = results
             .licenses
-            .get(results.licenses_root)
+            .get(params.licenses_root.clone())
             .collect::<Vec<_>>();
 
         let mut page = SearchPage {
@@ -91,14 +98,31 @@ pub async fn search(
 pub struct SearchParams {
     #[serde(default = "default_query")]
     query: String,
+    #[serde(deserialize_with = "deserialize_facet", default = "default_root")]
+    provenances_root: Facet,
+    #[serde(deserialize_with = "deserialize_facet", default = "default_root")]
+    licenses_root: Facet,
     #[serde(default = "default_page")]
     page: usize,
     #[serde(default = "default_results_per_page")]
     results_per_page: usize,
 }
 
+fn deserialize_facet<'de, D>(deserializer: D) -> Result<Facet, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let val = Cow::<str>::deserialize(deserializer)?;
+
+    Facet::from_text(&val).map_err(|err| D::Error::custom(err.to_string()))
+}
+
 fn default_query() -> String {
     "*".to_owned()
+}
+
+fn default_root() -> Facet {
+    Facet::root()
 }
 
 fn default_page() -> usize {

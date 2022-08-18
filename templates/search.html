@@ -10,6 +10,9 @@
     <form id="form" method="GET" style="display: flex">
       <input name="query" type="text" value="{{ params.query }}" style="width: 50%; font-size: large" />
 
+      <input name="provenances_root" type="hidden" value="{{ params.provenances_root }}" />
+      <input name="licenses_root" type="hidden" value="{{ params.licenses_root }}" />
+
       <input name="page" type="hidden" value="{{ params.page }}" />
       <input name="results_per_page" type="hidden" value="{{ params.results_per_page }}" />
 
@@ -49,7 +52,7 @@
         {% for (provenance, count) in provenances %}
 
           <tr>
-            <td><a href="javascript:add_facet('provenance', '{{ provenance }}')">{{ provenance }}</a></td><td>{{ count }}</td>
+            <td><a href="javascript:set_provenances_root('{{ provenance }}')">{{ provenance }}</a></td><td>{{ count }}</td>
           </tr>
 
         {% endfor %}
@@ -75,7 +78,7 @@
         {% for (license, count) in licenses %}
 
           <tr>
-            <td><a href="javascript:add_facet('license', '{{ license }}')">{{ license }}</a></td><td>{{ count }}</td>
+            <td><a href="javascript:set_licenses_root('{{ license }}')">{{ license }}</a></td><td>{{ count }}</td>
           </tr>
 
         {% endfor %}
@@ -100,7 +103,7 @@
 
         {% if page == params.page %} <b> {% endif %}
 
-        <a href="?query={{ params.query|urlencode }}&page={{ page }}&results_per_page={{ params.results_per_page }}">{{ page }}</a>
+        <a href="?query={{ params.query|urlencode }}&licenses_root={{ params.licenses_root|urlencode }}&provenances_root={{ params.provenances_root|urlencode }}&page={{ page }}&results_per_page={{ params.results_per_page }}">{{ page }}</a>
 
         {% if page==params.page %} </b> {% endif %}
 
@@ -111,11 +114,17 @@
     </div>
 
     <script>
-      const query = document.getElementsByName("query")[0];
+      const provenances_root = document.getElementsByName("provenances_root")[0];
+      const licenses_root = document.getElementsByName("licenses_root")[0];
       const form = document.getElementById("form");
 
-      function add_facet(field, value) {
-        query.value += ` +${field}:${value}`;
+      function set_provenances_root(value) {
+        provenances_root.value = value;
+        form.submit();
+      }
+
+      function set_licenses_root(value) {
+        licenses_root.value = value;
         form.submit();
       }
     </script>
