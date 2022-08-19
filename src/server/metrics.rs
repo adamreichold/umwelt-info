@@ -17,7 +17,7 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         let mut accesses = stats
             .accesses
-            .iter()
+            .into_iter()
             .map(|(source_name, accesses)| (source_name, accesses.values().sum()))
             .collect::<Vec<_>>();
 
@@ -27,13 +27,13 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         let metrics = Metrics::read(dir)?;
 
-        let mut harvests = metrics.harvests.iter().collect::<Vec<_>>();
+        let mut harvests = metrics.harvests.into_iter().collect::<Vec<_>>();
 
         harvests.sort_unstable_by_key(|(_, harvest)| Reverse(harvest.start));
 
-        let (sum_count, sum_transmitted, sum_failed) = metrics.harvests.values().fold(
+        let (sum_count, sum_transmitted, sum_failed) = harvests.iter().fold(
             (0, 0, 0),
-            |(sum_count, sum_transmitted, sum_failed), harvest| {
+            |(sum_count, sum_transmitted, sum_failed), (_, harvest)| {
                 (
                     sum_count + harvest.count,
                     sum_transmitted + harvest.transmitted,
@@ -42,18 +42,13 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
             },
         );
 
-        let mut licenses = metrics
-            .licenses
-            .iter()
-            .map(|(license, count)| (license.to_string(), *count))
-            .collect::<Vec<_>>();
+        let mut licenses = metrics.licenses.into_iter().collect::<Vec<_>>();
 
         licenses.sort_unstable_by_key(|(_, count)| Reverse(*count));
 
-        let sum_other = metrics
-            .licenses
+        let sum_other = licenses
             .iter()
-            .filter(|(license, _)| matches!(license, License::Other(_)))
+            .filter(|(license, _)| license.is_other())
             .map(|(_, count)| *count)
             .sum();
 
@@ -78,13 +73,13 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
 #[derive(Template)]
 #[template(path = "metrics.html")]
-struct MetricsPage<'a> {
-    accesses: Vec<(&'a String, u64)>,
+struct MetricsPage {
+    accesses: Vec<(String, u64)>,
     sum_accesses: u64,
-    harvests: Vec<(&'a String, &'a HarvestMetrics)>,
+    harvests: Vec<(String, HarvestMetrics)>,
     sum_count: usize,
     sum_transmitted: usize,
     sum_failed: usize,
-    licenses: Vec<(String, usize)>,
+    licenses: Vec<(License, usize)>,
     sum_other: usize,
 }
