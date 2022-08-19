@@ -4,10 +4,11 @@ use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
-use serde_roxmltree::from_str;
+use serde_json::from_str as from_json_str;
+use serde_roxmltree::from_str as from_xml_str;
 
 use crate::{
-    dataset::{Dataset, License},
+    dataset::Dataset,
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -81,7 +82,7 @@ async fn fetch_datasets(
         })
         .await?;
 
-    let response = from_str::<GetRecordsResponse>(&body)?;
+    let response = from_xml_str::<GetRecordsResponse>(&body)?;
 
     let count = response.results.num_records_matched;
     let results = response.results.records.len();
@@ -102,13 +103,16 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Re
     let identifier = record.file_identifier.text;
 
     let identification = record.identification_info.identification();
+
+    let license = identification.license().into();
+
     let title = identification.citation.inner.title.text;
     let description = identification.r#abstract.text.unwrap_or_default();
 
     let dataset = Dataset {
         title,
         description,
-        license: License::Unknown,
+        license,
         source_url: source.source_url().replace("{{id}}", &identifier),
     };
 
@@ -171,12 +175,35 @@ impl IdentificationInfo {
 struct Identification {
     citation: Citation,
     r#abstract: Abstract,
+    #[serde(rename = "resourceConstraints", default)]
+    resource_constraints: Vec<ResourceConstraints>,
 }
 
-#[derive(Debug, Deserialize)]
-struct Abstract {
-    #[serde(rename = "CharacterString")]
-    text: Option<String>,
+impl Identification {
+    /// Extract the license ID for Open Data licenses
+    ///
+    /// Based on section 3.6 from [Konventionen zu Metadaten][https://www.gdi-de.org/download/AK_Metadaten_Konventionen_zu_Metadaten.pdf].
+    fn license(&self) -> Option<String> {
+        for resource_constraints in &self.resource_constraints {
+            if let Some(legal_constraints) = resource_constraints.legal_constraints.as_ref() {
+                for use_constraints in &legal_constraints.use_constraints {
+                    if use_constraints.restriction_code.value == "otherRestrictions" {
+                        for other_constraints in &legal_constraints.other_constraints {
+                            if let Some(text) = &other_constraints.text {
+                                if let Ok(license) = from_json_str::<License>(text) {
+                                    return Some(license.id);
+                                }
+                            }
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        None
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -194,4 +221,47 @@ struct CitationInner {
 struct Title {
     #[serde(rename = "CharacterString")]
     text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct Abstract {
+    #[serde(rename = "CharacterString")]
+    text: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ResourceConstraints {
+    #[serde(rename = "MD_LegalConstraints")]
+    legal_constraints: Option<LegalConstraints>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LegalConstraints {
+    #[serde(rename = "useConstraints", default)]
+    use_constraints: Vec<UseConstraints>,
+    #[serde(rename = "otherConstraints", default)]
+    other_constraints: Vec<OtherConstraints>,
+}
+
+#[derive(Debug, Deserialize)]
+struct UseConstraints {
+    #[serde(rename = "MD_RestrictionCode")]
+    restriction_code: RestrictionCode,
+}
+
+#[derive(Debug, Deserialize)]
+struct RestrictionCode {
+    #[serde(rename = "codeListValue")]
+    value: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct OtherConstraints {
+    #[serde(rename = "CharacterString")]
+    text: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct License {
+    id: String,
 }
