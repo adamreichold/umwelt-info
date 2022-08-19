@@ -9,6 +9,8 @@ else
   mv $DATA_PATH/index $DATA_PATH/index.old
 fi
 
+systemctl daemon-reload
+
 systemctl start indexer.service
 
 systemctl restart server.service
