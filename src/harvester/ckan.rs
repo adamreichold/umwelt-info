@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::mem::take;
 
 use anyhow::{ensure, Result};
 use cap_std::fs::Dir;
@@ -104,8 +103,8 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, mut package: Package) -> Result<()> {
-    let license = package.take_license().into();
+async fn translate_dataset(dir: &Dir, source: &Source, package: Package) -> Result<()> {
+    let license = package.license().into();
 
     let dataset = Dataset {
         title: package.title,
@@ -141,19 +140,21 @@ struct Package {
 }
 
 impl Package {
-    fn take_license(&mut self) -> Option<String> {
-        if self.license_id.as_deref().map_or(0, str::len) != 0 {
-            return take(&mut self.license_id);
+    fn license(&self) -> Option<&str> {
+        if let Some(license_id) = &self.license_id {
+            if !license_id.is_empty() {
+                return Some(license_id);
+            }
         }
 
         match self.resources.len().cmp(&1) {
             Ordering::Less => None,
-            Ordering::Equal => take(&mut self.resources[0].license),
+            Ordering::Equal => self.resources[0].license.as_deref(),
             Ordering::Greater => {
-                let (head, tail) = self.resources.split_first_mut().unwrap();
+                let (head, tail) = self.resources.split_first().unwrap();
 
                 if tail.iter().all(|resource| resource.license == head.license) {
-                    take(&mut head.license)
+                    head.license.as_deref()
                 } else {
                     None
                 }
@@ -178,24 +179,24 @@ mod tests {
 
     #[test]
     fn empty_license_no_resources() {
-        let mut package = Package::default();
+        let package = Package::default();
 
-        assert_eq!(package.take_license(), None);
+        assert_eq!(package.license(), None);
     }
 
     #[test]
     fn non_empty_license_no_resources() {
-        let mut package = Package {
+        let package = Package {
             license_id: Some("foobar".to_owned()),
             ..Default::default()
         };
 
-        assert_eq!(package.take_license(), Some("foobar".to_owned()));
+        assert_eq!(package.license(), Some("foobar"));
     }
 
     #[test]
     fn empty_license_single_resource() {
-        let mut package = Package {
+        let package = Package {
             license_id: Some("".to_owned()),
             resources: vec![Resource {
                 license: Some("foobar".to_owned()),
@@ -203,12 +204,12 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(package.take_license(), Some("foobar".to_owned()));
+        assert_eq!(package.license(), Some("foobar"));
     }
 
     #[test]
     fn empty_license_multiple_matching_resources() {
-        let mut package = Package {
+        let package = Package {
             license_id: Some("".to_owned()),
             resources: vec![
                 Resource {
@@ -221,12 +222,12 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(package.take_license(), Some("foobar".to_owned()));
+        assert_eq!(package.license(), Some("foobar"));
     }
 
     #[test]
     fn empty_license_multiple_distinct_resources() {
-        let mut package = Package {
+        let package = Package {
             license_id: None,
             resources: vec![
                 Resource {
@@ -239,12 +240,12 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(package.take_license(), None);
+        assert_eq!(package.license(), None);
     }
 
     #[test]
     fn non_empty_license_multiple_distinct_resources() {
-        let mut package = Package {
+        let package = Package {
             license_id: Some("foobar".to_owned()),
             resources: vec![
                 Resource {
@@ -257,6 +258,6 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(package.take_license(), Some("foobar".to_owned()));
+        assert_eq!(package.license(), Some("foobar"));
     }
 }
