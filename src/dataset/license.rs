@@ -12,6 +12,8 @@ pub enum License {
     DlDeZero20,
     CcBy40,
     DorisBfs,
+    GeoNutz20130319,
+    GeoNutz20131001,
 }
 
 impl License {
@@ -24,8 +26,14 @@ impl License {
             Self::Unknown | Self::Other(_) => return None,
             Self::DlDeBy20 => "https://www.govdata.de/dl-de/by-2-0",
             Self::DlDeZero20 => "https://www.govdata.de/dl-de/zero-2-0",
-            Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
             Self::CcBy40 => "http://creativecommons.org/licenses/by/4.0/",
+            Self::DorisBfs => "https://doris.bfs.de/jspui/impressum/lizenz.html",
+            Self::GeoNutz20130319 => {
+                "https://sg.geodatenzentrum.de/web_public/gdz/lizenz/geonutzv.pdf"
+            }
+            Self::GeoNutz20131001 => {
+                "http://www.stadtentwicklung.berlin.de/geoinformation/download/nutzIII.pdf"
+            }
         };
 
         Some(val)
@@ -68,17 +76,26 @@ impl From<String> for License {
                     License::CcBy40,
                 ),
                 ("CC-BY-4.0", License::CcBy40),
+                // Nutzungsbestimmungen für die Bereitstellung von Geodaten des Bundes
+                ("geoNutz/20130319", License::GeoNutz20130319),
+                ("geonutz/20130319", License::GeoNutz20130319),
+                ("geonutzv-de-2013-03-19", License::GeoNutz20130319),
+                // Nutzungsbestimmungen für die Bereitstellung von Geodaten des Landes Berlin
+                ("geoNutz/20131001", License::GeoNutz20131001),
+                ("geonutz/20131001", License::GeoNutz20131001),
             ]
             .into()
         });
+
+        let val = val.trim();
 
         if val.is_empty() {
             return License::Unknown;
         }
 
-        match LICENSES.get(&*val) {
+        match LICENSES.get(val) {
             Some(license) => license.clone(),
-            None => Self::Other(val),
+            None => Self::Other(val.to_owned()),
         }
     }
 }
@@ -107,6 +124,8 @@ impl fmt::Display for License {
             Self::DlDeZero20 => "dl-zero-de/2.0",
             Self::CcBy40 => "cc-by/4.0",
             Self::DorisBfs => "doris-bfs",
+            Self::GeoNutz20130319 => "geoNutz/20130319",
+            Self::GeoNutz20131001 => "geoNutz/20131001",
         };
 
         fmt.write_str(val)
