@@ -37,6 +37,8 @@
 
     <div style="float: left; width: 15%">
 
+      {% if !params.provenances_root.is_root() %} <h4>Provenance: <a href="javascript:reset_provenances_root()">{{ params.provenances_root }}</a></h4> {% endif %}
+
       {% if !provenances.is_empty() %}
 
       <table>
@@ -62,6 +64,8 @@
       </table>
 
       {% endif %}
+
+      {% if !params.licenses_root.is_root() %} <h4>License: <a href="javascript:reset_licenses_root()">{{ params.licenses_root }}</a></h4> {% endif %}
 
       {% if !licenses.is_empty() %}
 
@@ -118,13 +122,28 @@
       const licenses_root = document.getElementsByName("licenses_root")[0];
       const form = document.getElementById("form");
 
+      function remove_last_component(value) {
+        const index = value.lastIndexOf("/");
+        return index == 0 ? "/" : value.slice(0, index);
+      }
+
       function set_provenances_root(value) {
         provenances_root.value = value;
         form.submit();
       }
 
+      function reset_provenances_root() {
+        provenances_root.value = remove_last_component(provenances_root.value);
+        form.submit();
+      }
+
       function set_licenses_root(value) {
         licenses_root.value = value;
+        form.submit();
+      }
+
+      function reset_licenses_root() {
+        licenses_root.value = remove_last_component(licenses_root.value);
         form.submit();
       }
     </script>
