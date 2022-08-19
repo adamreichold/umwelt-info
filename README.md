@@ -65,3 +65,7 @@ under which its response is stored on disk. Once development has reached a state
 ```console
 > REPLAY_RESPONSES= cargo xtask harvester
 ```
+
+### Content negotiation
+
+The HTTP routes `/search` and `/dataset` support content negotiation insofar they yield either rendered HTML pages or the underlying JSON data depending on the `Accept` header transmitted by the HTTP client.
