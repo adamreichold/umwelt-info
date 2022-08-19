@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::Result;
 use askama::Template;
 use cap_std::fs::Dir;
@@ -104,7 +106,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Re
 
     let identification = record.identification_info.identification();
 
-    let license = identification.license().into();
+    let license = identification.license().as_deref().into();
 
     let title = identification.citation.inner.title.text;
     let description = identification.r#abstract.text.unwrap_or_default();
@@ -183,7 +185,7 @@ impl Identification {
     /// Extract the license ID for Open Data licenses
     ///
     /// Based on section 3.6 from [Konventionen zu Metadaten][https://www.gdi-de.org/download/AK_Metadaten_Konventionen_zu_Metadaten.pdf].
-    fn license(&self) -> Option<String> {
+    fn license(&self) -> Option<Cow<str>> {
         for resource_constraints in &self.resource_constraints {
             if let Some(legal_constraints) = resource_constraints.legal_constraints.as_ref() {
                 for use_constraints in &legal_constraints.use_constraints {
@@ -262,6 +264,7 @@ struct OtherConstraints {
 }
 
 #[derive(Debug, Deserialize)]
-struct License {
-    id: String,
+struct License<'a> {
+    #[serde(borrow)]
+    id: Cow<'a, str>,
 }

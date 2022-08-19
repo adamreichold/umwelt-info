@@ -16,6 +16,12 @@ pub enum License {
     GeoNutz20131001,
 }
 
+impl From<&'_ License> for License {
+    fn from(val: &License) -> Self {
+        val.clone()
+    }
+}
+
 impl License {
     pub fn is_other(&self) -> bool {
         matches!(self, Self::Other(_))
@@ -40,8 +46,8 @@ impl License {
     }
 }
 
-impl From<String> for License {
-    fn from(val: String) -> Self {
+impl From<&'_ str> for License {
+    fn from(val: &str) -> Self {
         static LICENSES: Lazy<HashMap<&'static str, License>> = Lazy::new(|| {
             [
                 // Datenlizenz Deutschland – Namensnennung – Version 2.0
@@ -100,14 +106,8 @@ impl From<String> for License {
     }
 }
 
-impl From<&'_ License> for License {
-    fn from(val: &License) -> Self {
-        val.clone()
-    }
-}
-
-impl From<Option<String>> for License {
-    fn from(val: Option<String>) -> Self {
+impl From<Option<&'_ str>> for License {
+    fn from(val: Option<&str>) -> Self {
         match val {
             Some(val) => val.into(),
             None => Self::Unknown,
