@@ -5,6 +5,7 @@ use anyhow::Error;
 use axum::{extract::Extension, response::Redirect, routing::get, Router, Server};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
+use reqwest::Client;
 use tokio::{
     task::{spawn, spawn_blocking},
     time::{interval_at, Duration, Instant, MissedTickBehavior},
@@ -42,6 +43,13 @@ async fn main() -> Result<(), Error> {
 
     let searcher = &*Box::leak(Box::new(Searcher::open(&data_path)?));
 
+    let client = &*Box::leak(Box::new(
+        Client::builder()
+            .user_agent("umwelt.info server")
+            .timeout(Duration::from_secs(1))
+            .build()?,
+    ));
+
     let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
         data_path,
         ambient_authority(),
@@ -57,6 +65,7 @@ async fn main() -> Result<(), Error> {
         .route("/dataset/:source/:id", get(dataset))
         .route("/metrics", get(metrics))
         .layer(Extension(searcher))
+        .layer(Extension(client))
         .layer(Extension(dir))
         .layer(Extension(stats));
 

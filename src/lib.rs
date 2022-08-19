@@ -3,6 +3,7 @@ pub mod harvester;
 pub mod index;
 pub mod metrics;
 pub mod server;
+pub mod umthes;
 
 use std::env::var_os;
 use std::path::PathBuf;

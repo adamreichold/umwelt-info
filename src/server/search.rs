@@ -6,6 +6,7 @@ use axum::{
     response::Response,
 };
 use cap_std::fs::Dir;
+use reqwest::Client;
 use serde::{
     de::{Deserializer, Error},
     Deserialize, Serialize,
@@ -17,20 +18,21 @@ use crate::{
     dataset::Dataset,
     index::Searcher,
     server::{Accept, ServerError},
+    umthes,
 };
 
 pub async fn search(
     Query(params): Query<SearchParams>,
     accept: Accept,
     Extension(searcher): Extension<&'static Searcher>,
+    Extension(client): Extension<&'static Client>,
     Extension(dir): Extension<&'static Dir>,
 ) -> Result<Response, ServerError> {
     fn inner(
         params: SearchParams,
-        accept: Accept,
         searcher: &Searcher,
         dir: &Dir,
-    ) -> Result<Response, ServerError> {
+    ) -> Result<SearchPage, ServerError> {
         if params.page == 0 || params.results_per_page == 0 {
             return Err(ServerError::BadRequest(
                 "Page and results per page must not be zero",
@@ -58,11 +60,13 @@ pub async fn search(
         let provenances = results
             .provenances
             .get(params.provenances_root.clone())
+            .map(|(facet, count)| (facet.to_string(), count))
             .collect::<Vec<_>>();
 
         let licenses = results
             .licenses
             .get(params.licenses_root.clone())
+            .map(|(facet, count)| (facet.to_string(), count))
             .collect::<Vec<_>>();
 
         let mut page = SearchPage {
@@ -72,6 +76,8 @@ pub async fn search(
             results: Vec::new(),
             provenances,
             licenses,
+            terms: results.terms,
+            related_terms: Vec::new(),
         };
 
         let dir = dir.open_dir("datasets")?;
@@ -88,10 +94,17 @@ pub async fn search(
             });
         }
 
-        Ok(accept.into_repsonse(page))
+        Ok(page)
     }
 
-    spawn_blocking(move || inner(params, accept, searcher, dir)).await?
+    let mut page = spawn_blocking(|| inner(params, searcher, dir)).await??;
+
+    match umthes::fetch_similar_terms(client, &page.terms).await {
+        Ok(val) => page.related_terms = val,
+        Err(err) => tracing::warn!("Failed to fetch similar terms: {:#}", err),
+    }
+
+    Ok(accept.into_repsonse(page))
 }
 
 #[derive(Deserialize, Serialize)]
@@ -135,16 +148,18 @@ fn default_results_per_page() -> usize {
 
 #[derive(Template, Serialize)]
 #[template(path = "search.html")]
-struct SearchPage<'a> {
+struct SearchPage {
     params: SearchParams,
     count: usize,
     pages: usize,
     results: Vec<SearchResult>,
-    provenances: Vec<(&'a Facet, u64)>,
-    licenses: Vec<(&'a Facet, u64)>,
+    provenances: Vec<(String, u64)>,
+    licenses: Vec<(String, u64)>,
+    terms: Vec<String>,
+    related_terms: Vec<String>,
 }
 
-impl SearchPage<'_> {
+impl SearchPage {
     fn pages(&self) -> Vec<usize> {
         let mut pages = Vec::new();
 

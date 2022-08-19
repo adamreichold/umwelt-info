@@ -93,6 +93,22 @@
 
       {% endif %}
 
+      {% if !related_terms.is_empty() %}
+
+      <h4>Related terms</h4>
+
+      <ul>
+
+        {% for term in related_terms %}
+
+        <li><a href="javascript:add_term('{{ term }}')">{{ term }}</a></li>
+
+        {% endfor %}
+
+      </ul>
+
+      {% endif %}
+
     </div>
 
     <div style="clear: left; text-align: center">
@@ -118,9 +134,15 @@
     </div>
 
     <script>
+      const query = document.getElementsByName("query")[0];
       const provenances_root = document.getElementsByName("provenances_root")[0];
       const licenses_root = document.getElementsByName("licenses_root")[0];
       const form = document.getElementById("form");
+
+      function add_term(value) {
+        query.value += ` ${value}`;
+        form.submit();
+      }
 
       function remove_last_component(value) {
         const index = value.lastIndexOf("/");
