@@ -70,7 +70,7 @@
         {% for (license, count) in licenses %}
 
         <tr>
-          <td>{{ license }}</td><td>{{ count }}</td>
+          <td>{% if license.is_other() %}<i>{{ license }}<i>{% else %}{{ license }}{% endif %}</td><td>{{ count }}</td>
         </tr>
 
         {% endfor %}

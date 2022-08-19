@@ -15,6 +15,10 @@ pub enum License {
 }
 
 impl License {
+    pub fn is_other(&self) -> bool {
+        matches!(self, Self::Other(_))
+    }
+
     pub fn url(&self) -> Option<&'static str> {
         let val = match self {
             Self::Unknown | Self::Other(_) => return None,
