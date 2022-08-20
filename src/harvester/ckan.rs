@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 
 use crate::{
-    dataset::Dataset,
+    dataset::{Dataset, Resource},
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -107,12 +107,19 @@ async fn fetch_datasets(
 async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> Result<()> {
     let license = package.license().into();
 
+    let resources = package
+        .resources
+        .into_iter()
+        .map(|resource| Resource::unknown(resource.url))
+        .collect();
+
     let dataset = Dataset {
         title: package.title,
         description: package.notes.unwrap_or_default(),
         license,
         tags: Vec::new(),
         source_url: source.source_url().replace("{{name}}", &package.name),
+        resources,
     };
 
     write_dataset(dir, &package.id, dataset).await
@@ -122,7 +129,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> 
 struct PackageSearch<'a> {
     success: bool,
     #[serde(borrow)]
-    error: Option<Error<'a>>,
+    error: Option<CkanError<'a>>,
     #[serde(borrow)]
     result: PackageSearchResult<'a>,
 }
@@ -145,7 +152,7 @@ struct Package<'a> {
     #[serde(borrow)]
     license_id: Option<Cow<'a, str>>,
     #[serde(borrow)]
-    resources: Vec<Resource<'a>>,
+    resources: Vec<CkanResource<'a>>,
 }
 
 impl Package<'_> {
@@ -172,14 +179,15 @@ impl Package<'_> {
     }
 }
 
-#[derive(Deserialize)]
-struct Resource<'a> {
+#[derive(Default, Deserialize)]
+struct CkanResource<'a> {
+    url: String,
     #[serde(borrow)]
     license: Option<Cow<'a, str>>,
 }
 
 #[derive(Deserialize)]
-struct Error<'a> {
+struct CkanError<'a> {
     #[serde(borrow)]
     message: Cow<'a, str>,
 }
@@ -209,8 +217,9 @@ mod tests {
     fn empty_license_single_resource() {
         let package = Package {
             license_id: Some("".into()),
-            resources: vec![Resource {
+            resources: vec![CkanResource {
                 license: Some("foobar".into()),
+                ..Default::default()
             }],
             ..Default::default()
         };
@@ -223,11 +232,13 @@ mod tests {
         let package = Package {
             license_id: Some("".into()),
             resources: vec![
-                Resource {
+                CkanResource {
                     license: Some("foobar".into()),
+                    ..Default::default()
                 },
-                Resource {
+                CkanResource {
                     license: Some("foobar".into()),
+                    ..Default::default()
                 },
             ],
             ..Default::default()
@@ -241,11 +252,13 @@ mod tests {
         let package = Package {
             license_id: None,
             resources: vec![
-                Resource {
+                CkanResource {
                     license: Some("foo".into()),
+                    ..Default::default()
                 },
-                Resource {
+                CkanResource {
                     license: Some("bar".into()),
+                    ..Default::default()
                 },
             ],
             ..Default::default()
@@ -259,11 +272,13 @@ mod tests {
         let package = Package {
             license_id: Some("foobar".into()),
             resources: vec![
-                Resource {
+                CkanResource {
                     license: Some("foo".into()),
+                    ..Default::default()
                 },
-                Resource {
+                CkanResource {
                     license: Some("bar".into()),
+                    ..Default::default()
                 },
             ],
             ..Default::default()
