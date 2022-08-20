@@ -119,6 +119,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -
         license,
         tags: Vec::new(),
         source_url: source.source_url().replace("{{id}}", identifier),
+        resources: Vec::new(),
     };
 
     write_dataset(dir, identifier, dataset).await

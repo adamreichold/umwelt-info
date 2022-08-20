@@ -1,4 +1,5 @@
 mod license;
+mod resource;
 
 use std::io::Read;
 
@@ -9,20 +10,23 @@ use serde::{Deserialize, Serialize};
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
 pub use license::License;
+pub use resource::{Resource, Type as ResourceType};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Dataset {
     pub title: String,
     pub description: String,
     pub license: License,
     pub tags: Vec<String>,
     pub source_url: String,
+    pub resources: Vec<Resource>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct OldDataset {
     pub title: String,
     pub description: String,
+    pub license: License,
     pub source_url: String,
 }
 
@@ -41,9 +45,10 @@ impl Dataset {
                 Dataset {
                     title: old_val.title,
                     description: old_val.description,
-                    license: License::Unknown,
+                    license: old_val.license,
                     tags: Vec::new(),
                     source_url: old_val.source_url,
+                    resources: Vec::new(),
                 }
             }
         };

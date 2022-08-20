@@ -1,10 +1,25 @@
+//! This harvester maps the "Recherche" function available at Wasser-DE into our catalogue.
+//!
+//! | Original field    | Mapped field | Comment                                                      |
+//! | ----------------- | ------------ | ------------------------------------------------------------ |
+//! | ID                | id           | Assumed to be numeric and redundant                          |
+//! | metadataid        |              |                                                              |
+//! | NAME              | title        | Document skipped if missing                                  |
+//! | TEASERTEXT        | description  | TEASERTEXT preferred over AUTOTEASERTEXT if both are present |
+//! | AUTOTEASERTEXT    |              |                                                              |
+//! | LICENSE_ID        |              |                                                              |
+//! | LICENSE_NAME_KURZ | license      | LICENSE_ID and LICENSE_NAME_LANG considered redundant        |
+//! | LICENSE_NAME_LANG |              |                                                              |
+//! | RICHTLINIE_IDS    | tags         |                                                              |
+//! | URL               | resource     |                                                              |
+//!
 use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 
 use crate::{
-    dataset::Dataset,
+    dataset::{Dataset, Resource},
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -49,7 +64,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
 
     let title = document
         .name
-        .ok_or_else(|| anyhow!("Document {} has no valid entry for 'NAME'", document.id))?;
+        .ok_or_else(|| anyhow!("Document {} has no title", document.id))?;
 
     let description = document
         .teaser_text
@@ -62,6 +77,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         license: document.license.as_str().into(),
         tags,
         source_url: source.url.clone().into(),
+        resources: vec![Resource::unknown(document.url)],
     };
 
     write_dataset(dir, &document.id.to_string(), dataset).await
@@ -96,6 +112,8 @@ struct Document {
     license: String,
     #[serde(rename = "RICHTLINIE_IDS")]
     directive: Option<String>,
+    #[serde(rename = "URL")]
+    url: String,
 }
 
 impl Document {

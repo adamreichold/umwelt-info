@@ -169,6 +169,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         license: License::DorisBfs,
         tags: Vec::new(),
         source_url: url.into(),
+        resources: Vec::new(),
     };
 
     write_dataset(dir, &identifier, dataset).await
