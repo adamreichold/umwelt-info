@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
 
 use anyhow::{ensure, Result};
@@ -103,7 +104,7 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-async fn translate_dataset(dir: &Dir, source: &Source, package: Package) -> Result<()> {
+async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> Result<()> {
     let license = package.license().into();
 
     let dataset = Dataset {
@@ -113,33 +114,40 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package) -> Resu
         source_url: source.source_url().replace("{{name}}", &package.name),
     };
 
-    write_dataset(dir, package.id, dataset).await
+    write_dataset(dir, &package.id, dataset).await
 }
 
 #[derive(Deserialize)]
-struct PackageSearch {
+struct PackageSearch<'a> {
     success: bool,
-    error: Option<Error>,
-    result: PackageSearchResult,
+    #[serde(borrow)]
+    error: Option<Error<'a>>,
+    #[serde(borrow)]
+    result: PackageSearchResult<'a>,
 }
 
 #[derive(Deserialize)]
-struct PackageSearchResult {
+struct PackageSearchResult<'a> {
     count: usize,
-    results: Vec<Package>,
+    #[serde(borrow)]
+    results: Vec<Package<'a>>,
 }
 
 #[derive(Default, Deserialize)]
-struct Package {
-    id: String,
-    name: String,
+struct Package<'a> {
+    #[serde(borrow)]
+    id: Cow<'a, str>,
+    #[serde(borrow)]
+    name: Cow<'a, str>,
     title: String,
     notes: Option<String>,
-    license_id: Option<String>,
-    resources: Vec<Resource>,
+    #[serde(borrow)]
+    license_id: Option<Cow<'a, str>>,
+    #[serde(borrow)]
+    resources: Vec<Resource<'a>>,
 }
 
-impl Package {
+impl Package<'_> {
     fn license(&self) -> Option<&str> {
         if let Some(license_id) = &self.license_id {
             if !license_id.is_empty() {
@@ -164,13 +172,15 @@ impl Package {
 }
 
 #[derive(Deserialize)]
-struct Resource {
-    license: Option<String>,
+struct Resource<'a> {
+    #[serde(borrow)]
+    license: Option<Cow<'a, str>>,
 }
 
 #[derive(Deserialize)]
-struct Error {
-    message: String,
+struct Error<'a> {
+    #[serde(borrow)]
+    message: Cow<'a, str>,
 }
 
 #[cfg(test)]
@@ -187,7 +197,7 @@ mod tests {
     #[test]
     fn non_empty_license_no_resources() {
         let package = Package {
-            license_id: Some("foobar".to_owned()),
+            license_id: Some("foobar".into()),
             ..Default::default()
         };
 
@@ -197,9 +207,9 @@ mod tests {
     #[test]
     fn empty_license_single_resource() {
         let package = Package {
-            license_id: Some("".to_owned()),
+            license_id: Some("".into()),
             resources: vec![Resource {
-                license: Some("foobar".to_owned()),
+                license: Some("foobar".into()),
             }],
             ..Default::default()
         };
@@ -210,13 +220,13 @@ mod tests {
     #[test]
     fn empty_license_multiple_matching_resources() {
         let package = Package {
-            license_id: Some("".to_owned()),
+            license_id: Some("".into()),
             resources: vec![
                 Resource {
-                    license: Some("foobar".to_owned()),
+                    license: Some("foobar".into()),
                 },
                 Resource {
-                    license: Some("foobar".to_owned()),
+                    license: Some("foobar".into()),
                 },
             ],
             ..Default::default()
@@ -231,10 +241,10 @@ mod tests {
             license_id: None,
             resources: vec![
                 Resource {
-                    license: Some("foo".to_owned()),
+                    license: Some("foo".into()),
                 },
                 Resource {
-                    license: Some("bar".to_owned()),
+                    license: Some("bar".into()),
                 },
             ],
             ..Default::default()
@@ -246,13 +256,13 @@ mod tests {
     #[test]
     fn non_empty_license_multiple_distinct_resources() {
         let package = Package {
-            license_id: Some("foobar".to_owned()),
+            license_id: Some("foobar".into()),
             resources: vec![
                 Resource {
-                    license: Some("foo".to_owned()),
+                    license: Some("foo".into()),
                 },
                 Resource {
-                    license: Some("bar".to_owned()),
+                    license: Some("bar".into()),
                 },
             ],
             ..Default::default()

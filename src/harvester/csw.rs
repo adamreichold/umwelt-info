@@ -118,7 +118,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Re
         source_url: source.source_url().replace("{{id}}", &identifier),
     };
 
-    write_dataset(dir, identifier, dataset).await
+    write_dataset(dir, &identifier, dataset).await
 }
 
 #[derive(Template)]

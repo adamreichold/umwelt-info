@@ -61,7 +61,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         source_url: source.url.clone().into(),
     };
 
-    write_dataset(dir, document.id.to_string(), dataset).await
+    write_dataset(dir, &document.id.to_string(), dataset).await
 }
 
 #[derive(Serialize)]
