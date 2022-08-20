@@ -82,5 +82,24 @@
       </tbody>
     </table>
 
+    <h3>Licenses by source</h3>
+
+    <table>
+      <thead>
+        <th>Source</th><th>Unknown</th><th>Other</th>
+      </thead>
+
+      <tbody>
+        {% for (source, unknown, other) in licenses_by_source %}
+
+        <tr>
+          <td>{{ source }}</td><td>{{ unknown|percentage }}</td><td>{{ other|percentage }}</td>
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+    </table>
+
   </body>
 </html>
