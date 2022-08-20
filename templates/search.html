@@ -8,7 +8,9 @@
   <body>
 
     <form id="form" method="GET" style="display: flex">
-      <input name="query" type="text" value="{{ params.query }}" style="width: 50%; font-size: large" />
+      <input name="query" type="search" autocomplete="off" list="completions" oninput="update_completions()" value="{{ params.query }}" style="width: 50%; font-size: large" />
+
+      <datalist id="completions"></datalist>
 
       <input name="provenances_root" type="hidden" value="{{ params.provenances_root }}" />
       <input name="licenses_root" type="hidden" value="{{ params.licenses_root }}" />
@@ -145,6 +147,51 @@
       function reset_licenses_root() {
         licenses_root.value = remove_last_component(licenses_root.value);
         form.submit();
+      }
+    </script>
+
+    <script>
+      const query = document.getElementsByName("query")[0];
+      const completions = document.getElementById("completions");
+
+      let completions_pending = false;
+
+      async function update_completions() {
+        if (query.selectionStart !== query.value.length) {
+          return;
+        }
+
+        const index = query.value.lastIndexOf(" ");
+        const term = query.value.slice(index + 1);
+        const rest = query.value.slice(0, index + 1);
+
+        if (term.length === 0) {
+          return;
+        }
+
+        if (completions_pending) {
+          return;
+        }
+
+        completions_pending = true;
+
+        try {
+          while (completions.firstChild) {
+            completions.removeChild(completions.lastChild);
+          }
+
+          const response = await fetch(`/completions?term=${term}`);
+          const completions1 = await response.json();
+
+          for (const completion of completions1) {
+            const option = document.createElement('option');
+            option.value = rest + completion;
+
+            completions.appendChild(option);
+          }
+        } finally {
+          completions_pending = false;
+        }
       }
     </script>
 
