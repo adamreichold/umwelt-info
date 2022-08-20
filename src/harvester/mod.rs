@@ -17,7 +17,7 @@ use url::Url;
 
 use crate::dataset::Dataset;
 
-async fn write_dataset(dir: &Dir, id: String, dataset: Dataset) -> Result<()> {
+async fn write_dataset(dir: &Dir, id: &str, dataset: Dataset) -> Result<()> {
     let file = match dir.open_with(&id, FsOpenOptions::new().write(true).create_new(true)) {
         Ok(file) => file,
         Err(_err) => {

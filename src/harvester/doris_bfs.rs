@@ -170,7 +170,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         source_url: url.into(),
     };
 
-    write_dataset(dir, identifier, dataset).await
+    write_dataset(dir, &identifier, dataset).await
 }
 
 fn parse_count(document: &Html) -> Result<usize> {
