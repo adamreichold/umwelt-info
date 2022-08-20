@@ -1,6 +1,5 @@
 use anyhow::{anyhow, ensure, Result};
 use cap_std::fs::Dir;
-use futures_util::stream::{iter, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use scraper::{Html, Selector};
@@ -8,7 +7,7 @@ use serde::Serialize;
 
 use crate::{
     dataset::{Dataset, License},
-    harvester::{client::Client, write_dataset, Source},
+    harvester::{client::Client, fetch_many, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -20,28 +19,10 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let requests = (count + rpp - 1) / rpp;
     let offset = (1..requests).map(|request| request * rpp);
 
-    let (results, errors) = iter(offset)
-        .map(|offset| fetch_datasets(dir, client, source, rpp, offset))
-        .buffer_unordered(source.concurrency)
-        .fold(
-            (results, errors),
-            |(mut results, mut errors), res| async move {
-                match res {
-                    Ok((_count, results1, errors1)) => {
-                        results += results1;
-                        errors += errors1;
-                    }
-                    Err(err) => {
-                        tracing::error!("{:#}", err);
-
-                        errors += 1;
-                    }
-                }
-
-                (results, errors)
-            },
-        )
-        .await;
+    let (results, errors) = fetch_many(source, results, errors, offset, |offset| {
+        fetch_datasets(dir, client, source, rpp, offset)
+    })
+    .await;
 
     Ok((count, results, errors))
 }

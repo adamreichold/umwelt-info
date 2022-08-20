@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use anyhow::Result;
 use askama::Template;
 use cap_std::fs::Dir;
-use futures_util::stream::{iter, StreamExt};
 use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use serde_json::from_str as from_json_str;
@@ -11,7 +10,7 @@ use serde_roxmltree::{from_doc as from_xml_doc, roxmltree::Document};
 
 use crate::{
     dataset::Dataset,
-    harvester::{client::Client, write_dataset, Source},
+    harvester::{client::Client, fetch_many, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -23,28 +22,10 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let requests = (count + max_records - 1) / max_records;
     let start_pos = (1..requests).map(|request| 1 + request * max_records);
 
-    let (results, errors) = iter(start_pos)
-        .map(|start_pos| fetch_datasets(dir, client, source, max_records, start_pos))
-        .buffer_unordered(source.concurrency)
-        .fold(
-            (results, errors),
-            |(mut results, mut errors), res| async move {
-                match res {
-                    Ok((_count, results1, errors1)) => {
-                        results += results1;
-                        errors += errors1;
-                    }
-                    Err(err) => {
-                        tracing::error!("{:#}", err);
-
-                        errors += 1;
-                    }
-                }
-
-                (results, errors)
-            },
-        )
-        .await;
+    let (results, errors) = fetch_many(source, results, errors, start_pos, |start_pos| {
+        fetch_datasets(dir, client, source, max_records, start_pos)
+    })
+    .await;
 
     Ok((count, results, errors))
 }

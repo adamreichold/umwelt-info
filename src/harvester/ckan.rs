@@ -3,13 +3,12 @@ use std::cmp::Ordering;
 
 use anyhow::{ensure, Result};
 use cap_std::fs::Dir;
-use futures_util::stream::{iter, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 
 use crate::{
     dataset::{Dataset, Resource},
-    harvester::{client::Client, write_dataset, Source},
+    harvester::{client::Client, fetch_many, write_dataset, Source},
 };
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
@@ -21,28 +20,10 @@ pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usi
     let requests = (count + rows - 1) / rows;
     let start = (1..requests).map(|request| request * rows);
 
-    let (results, errors) = iter(start)
-        .map(|start| fetch_datasets(dir, client, source, start, rows))
-        .buffer_unordered(source.concurrency)
-        .fold(
-            (results, errors),
-            |(mut results, mut errors), res| async move {
-                match res {
-                    Ok((_count, results1, errors1)) => {
-                        results += results1;
-                        errors += errors1;
-                    }
-                    Err(err) => {
-                        tracing::error!("{:#}", err);
-
-                        errors += 1;
-                    }
-                }
-
-                (results, errors)
-            },
-        )
-        .await;
+    let (results, errors) = fetch_many(source, results, errors, start, |start| {
+        fetch_datasets(dir, client, source, start, rows)
+    })
+    .await;
 
     Ok((count, results, errors))
 }
