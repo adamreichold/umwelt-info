@@ -24,3 +24,7 @@ pub fn duration(val: &Duration) -> Result<String> {
 
     Ok(val)
 }
+
+pub fn percentage(val: &f64) -> Result<String> {
+    Ok(format!("{:.0} %", 100.0 * val))
+}

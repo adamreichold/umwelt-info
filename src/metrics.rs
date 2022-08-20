@@ -12,7 +12,7 @@ use crate::dataset::{Dataset, License};
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Metrics {
     pub harvests: HashMap<String, Harvest>,
-    pub licenses: HashMap<License, usize>,
+    pub licenses: HashMap<String, HashMap<License, usize>>,
 }
 
 impl Metrics {
@@ -57,12 +57,17 @@ impl Metrics {
         );
     }
 
-    pub fn reset_datasets(&mut self) {
+    pub fn clear_datasets(&mut self) {
         self.licenses.clear();
     }
 
-    pub fn record_dataset(&mut self, dataset: &Dataset) {
-        *self.licenses.entry_ref(&dataset.license).or_default() += 1;
+    pub fn record_dataset(&mut self, source: &str, dataset: &Dataset) {
+        *self
+            .licenses
+            .entry_ref(source)
+            .or_default()
+            .entry_ref(&dataset.license)
+            .or_default() += 1;
     }
 }
 

@@ -3,6 +3,7 @@ use std::cmp::Reverse;
 use askama::Template;
 use axum::{extract::Extension, response::Html};
 use cap_std::fs::Dir;
+use hashbrown::HashMap;
 use tokio::task::spawn_blocking;
 
 use crate::{
@@ -42,7 +43,53 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
             },
         );
 
-        let mut licenses = metrics.licenses.into_iter().collect::<Vec<_>>();
+        let mut licenses_by_source = metrics
+            .licenses
+            .iter()
+            .map(|(source, licenses)| {
+                let (count, unknown, other) = licenses.iter().fold(
+                    (0, 0, 0),
+                    |(mut count, mut unknown, mut other), (license, count1)| {
+                        count += count1;
+
+                        match license {
+                            License::Unknown => unknown += count1,
+                            License::Other(_) => other += count1,
+                            _ => (),
+                        }
+
+                        (count, unknown, other)
+                    },
+                );
+
+                (
+                    source.clone(),
+                    unknown as f64 / count as f64,
+                    other as f64 / (count - unknown) as f64,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        licenses_by_source.sort_unstable_by(
+            |(_, lhs_unknown, lhs_other), (_, rhs_unknown, rhs_other)| {
+                (rhs_unknown, rhs_other)
+                    .partial_cmp(&(lhs_unknown, lhs_other))
+                    .unwrap()
+            },
+        );
+
+        let mut licenses = metrics
+            .licenses
+            .into_iter()
+            .fold(HashMap::new(), |mut licenses, (_, licenses1)| {
+                for (license, count) in licenses1 {
+                    *licenses.entry(license).or_default() += count;
+                }
+
+                licenses
+            })
+            .into_iter()
+            .collect::<Vec<_>>();
 
         licenses.sort_unstable_by_key(|(_, count)| Reverse(*count));
 
@@ -61,6 +108,7 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
             sum_failed,
             licenses,
             sum_other,
+            licenses_by_source,
         };
 
         let page = Html(page.render().unwrap());
@@ -82,4 +130,5 @@ struct MetricsPage {
     sum_failed: usize,
     licenses: Vec<(License, usize)>,
     sum_other: usize,
+    licenses_by_source: Vec<(String, f64, f64)>,
 }

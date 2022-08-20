@@ -24,7 +24,7 @@ fn main() -> Result<()> {
 
     let mut metrics = Mutex::new(Metrics::read(&dir)?);
 
-    metrics.get_mut().reset_datasets();
+    metrics.get_mut().clear_datasets();
 
     dir.read_dir("datasets")?
         .par_bridge()
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
 
                     let accesses = accesses.and_then(|accesses| accesses.get(&dataset_id));
 
-                    metrics.lock().record_dataset(&dataset);
+                    metrics.lock().record_dataset(&source_id, &dataset);
 
                     indexer.add_document(
                         source_id.clone(),
