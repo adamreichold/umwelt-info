@@ -6,10 +6,12 @@ pub mod geo_network_q;
 pub mod wasser_de;
 
 use std::fmt;
+use std::future::Future;
 use std::io::Read;
 
 use anyhow::{ensure, Result};
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
+use futures_util::stream::{iter, StreamExt};
 use hashbrown::HashSet;
 use serde::Deserialize;
 use toml::from_str;
@@ -30,6 +32,42 @@ async fn write_dataset(dir: &Dir, id: &str, dataset: Dataset) -> Result<()> {
     dataset.write(file).await?;
 
     Ok(())
+}
+
+async fn fetch_many<R, T, M, F>(
+    source: &Source,
+    results: usize,
+    errors: usize,
+    requests: R,
+    make_request: M,
+) -> (usize, usize)
+where
+    R: Iterator<Item = T>,
+    M: Fn(T) -> F,
+    F: Future<Output = Result<(usize, usize, usize)>>,
+{
+    iter(requests)
+        .map(make_request)
+        .buffer_unordered(source.concurrency)
+        .fold(
+            (results, errors),
+            |(mut results, mut errors), res| async move {
+                match res {
+                    Ok((_count, results1, errors1)) => {
+                        results += results1;
+                        errors += errors1;
+                    }
+                    Err(err) => {
+                        tracing::error!("{:#}", err);
+
+                        errors += source.batch_size;
+                    }
+                }
+
+                (results, errors)
+            },
+        )
+        .await
 }
 
 #[derive(Debug, Deserialize)]

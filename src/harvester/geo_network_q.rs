@@ -1,43 +1,24 @@
 use anyhow::Result;
 use cap_std::fs::Dir;
-use futures_util::stream::{iter, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_roxmltree::{from_doc, roxmltree::Document};
 
-use crate::harvester::{client::Client, csw, Source};
+use crate::harvester::{client::Client, csw, fetch_many, Source};
 
 pub async fn harvest(dir: &Dir, client: &Client, source: &Source) -> Result<(usize, usize, usize)> {
-    let entries = source.batch_size;
+    let records = source.batch_size;
 
-    let (count, results, errors) = fetch_datasets(dir, client, source, true, 1, entries).await?;
+    let (count, results, errors) = fetch_datasets(dir, client, source, true, 1, records).await?;
     tracing::info!("Harvesting {} datasets", count);
 
-    let requests = (count + entries - 1) / entries;
-    let from = (1..requests).map(|request| 1 + request * entries);
-    let to = from.clone().map(|from| from + entries - 1);
+    let requests = (count + records - 1) / records;
+    let from = (1..requests).map(|request| 1 + request * records);
+    let to = from.clone().map(|from| from + records - 1);
 
-    let (results, errors) = iter(from.zip(to))
-        .map(|(from, to)| fetch_datasets(dir, client, source, false, from, to))
-        .buffer_unordered(source.concurrency)
-        .fold(
-            (results, errors),
-            |(mut results, mut errors), res| async move {
-                match res {
-                    Ok((_count, results1, errors1)) => {
-                        results += results1;
-                        errors += errors1;
-                    }
-                    Err(err) => {
-                        tracing::error!("{:#}", err);
-
-                        errors += 1;
-                    }
-                }
-
-                (results, errors)
-            },
-        )
-        .await;
+    let (results, errors) = fetch_many(source, results, errors, from.zip(to), |(from, to)| {
+        fetch_datasets(dir, client, source, false, from, to)
+    })
+    .await;
 
     Ok((count, results, errors))
 }
