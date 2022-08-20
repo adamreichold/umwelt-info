@@ -7,6 +7,7 @@ use anyhow::{anyhow, ensure, Result};
 fn main() -> Result<()> {
     match args().nth(1).as_deref() {
         None => default(),
+        Some("doc") => doc(),
         Some("harvester") => harvester(),
         Some("indexer") => indexer(),
         Some("server") => server(),
@@ -20,6 +21,14 @@ fn default() -> Result<()> {
     cargo("Clippy", ["clippy", "--all-targets"], [])?;
 
     cargo("Tests", ["test"], [])?;
+
+    Ok(())
+}
+
+fn doc() -> Result<()> {
+    cargo("Rustdoc", ["doc", "--document-private-items"], [])?;
+
+    println!("Documentation built at target/doc/umwelt_info/index.html");
 
     Ok(())
 }
