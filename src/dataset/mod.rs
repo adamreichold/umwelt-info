@@ -7,6 +7,7 @@ use anyhow::{Context, Result};
 use bincode::{deserialize, serialize};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use time::Date;
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
@@ -20,7 +21,7 @@ pub struct Dataset {
     pub license: License,
     pub tags: Vec<String>,
     pub source_url: String,
-    pub resources: Vec<Resource>,
+    pub resources: SmallVec<[Resource; 4]>,
     pub issued: Option<Date>,
 }
 
@@ -44,13 +45,13 @@ impl Dataset {
                     .map_err(|_old_err| err)
                     .context("Failed to deserialize dataset")?;
 
-                Dataset {
+                Self {
                     title: old_val.title,
                     description: old_val.description,
                     license: old_val.license,
                     tags: Vec::new(),
                     source_url: old_val.source_url,
-                    resources: Vec::new(),
+                    resources: SmallVec::new(),
                     issued: None,
                 }
             }

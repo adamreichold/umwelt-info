@@ -18,6 +18,7 @@ use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
+use smallvec::smallvec;
 use time::Date;
 
 use crate::{
@@ -84,7 +85,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         license: document.license.as_str().into(),
         tags,
         source_url: source.url.clone().into(),
-        resources: vec![Resource::unknown(document.url)],
+        resources: smallvec![Resource::unknown(document.url)],
         issued,
     };
 

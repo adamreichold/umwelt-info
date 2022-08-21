@@ -4,6 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use scraper::{Html, Selector};
 use serde::Serialize;
+use smallvec::SmallVec;
 
 use crate::{
     dataset::{Dataset, License},
@@ -150,7 +151,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         license: License::DorisBfs,
         tags: Vec::new(),
         source_url: url.into(),
-        resources: Vec::new(),
+        resources: SmallVec::new(),
         issued: None,
     };
 

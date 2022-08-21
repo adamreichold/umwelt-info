@@ -7,6 +7,7 @@ use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use serde_json::from_str as from_json_str;
 use serde_roxmltree::{from_doc as from_xml_doc, roxmltree::Document};
+use smallvec::SmallVec;
 
 use crate::{
     dataset::Dataset,
@@ -100,7 +101,7 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -
         license,
         tags: Vec::new(),
         source_url: source.source_url().replace("{{id}}", identifier),
-        resources: Vec::new(),
+        resources: SmallVec::new(),
         issued: None,
     };
 
