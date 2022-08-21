@@ -7,7 +7,7 @@ use futures_util::stream::{iter, StreamExt};
 use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use serde_json::from_str as from_json_str;
-use serde_roxmltree::from_str as from_xml_str;
+use serde_roxmltree::{from_doc as from_xml_doc, roxmltree::Document};
 
 use crate::{
     dataset::Dataset,
@@ -84,7 +84,9 @@ async fn fetch_datasets(
         })
         .await?;
 
-    let response = from_xml_str::<GetRecordsResponse>(&body)?;
+    let document = Document::parse(&body)?;
+
+    let response = from_xml_doc::<GetRecordsResponse>(&document)?;
 
     let count = response.results.num_records_matched;
     let results = response.results.records.len();
@@ -101,7 +103,7 @@ async fn fetch_datasets(
     Ok((count, results, errors))
 }
 
-pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Result<()> {
+pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -> Result<()> {
     let identifier = record.file_identifier.text;
 
     let identification = record.identification_info.identification();
@@ -115,10 +117,10 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record) -> Re
         title,
         description,
         license,
-        source_url: source.source_url().replace("{{id}}", &identifier),
+        source_url: source.source_url().replace("{{id}}", identifier),
     };
 
-    write_dataset(dir, &identifier, dataset).await
+    write_dataset(dir, identifier, dataset).await
 }
 
 #[derive(Template)]
@@ -129,43 +131,43 @@ struct GetRecordsRequest {
 }
 
 #[derive(Debug, Deserialize)]
-struct GetRecordsResponse {
-    #[serde(rename = "SearchResults")]
-    results: SearchResults,
+struct GetRecordsResponse<'a> {
+    #[serde(rename = "SearchResults", borrow)]
+    results: SearchResults<'a>,
 }
 
 #[derive(Debug, Deserialize)]
-struct SearchResults {
+struct SearchResults<'a> {
     #[serde(rename = "numberOfRecordsMatched")]
     num_records_matched: usize,
-    #[serde(rename = "MD_Metadata")]
-    records: Vec<Record>,
+    #[serde(rename = "MD_Metadata", borrow)]
+    records: Vec<Record<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Record {
-    #[serde(rename = "fileIdentifier")]
-    file_identifier: FileIdentifier,
-    #[serde(rename = "identificationInfo")]
-    identification_info: IdentificationInfo,
+pub struct Record<'a> {
+    #[serde(rename = "fileIdentifier", borrow)]
+    file_identifier: FileIdentifier<'a>,
+    #[serde(rename = "identificationInfo", borrow)]
+    identification_info: IdentificationInfo<'a>,
 }
 
 #[derive(Debug, Deserialize)]
-struct FileIdentifier {
+struct FileIdentifier<'a> {
     #[serde(rename = "CharacterString")]
-    text: String,
+    text: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
-enum IdentificationInfo {
-    #[serde(rename = "MD_DataIdentification")]
-    Data(Identification),
-    #[serde(rename = "SV_ServiceIdentification")]
-    Service(Identification),
+enum IdentificationInfo<'a> {
+    #[serde(rename = "MD_DataIdentification", borrow)]
+    Data(Identification<'a>),
+    #[serde(rename = "SV_ServiceIdentification", borrow)]
+    Service(Identification<'a>),
 }
 
-impl IdentificationInfo {
-    fn identification(self) -> Identification {
+impl<'a> IdentificationInfo<'a> {
+    fn identification(self) -> Identification<'a> {
         match self {
             Self::Data(identification) => identification,
             Self::Service(identification) => identification,
@@ -174,20 +176,20 @@ impl IdentificationInfo {
 }
 
 #[derive(Debug, Deserialize)]
-struct Identification {
+struct Identification<'a> {
     citation: Citation,
     r#abstract: Abstract,
-    #[serde(rename = "resourceConstraints", default)]
-    resource_constraints: Vec<ResourceConstraints>,
+    #[serde(rename = "resourceConstraints", default, borrow)]
+    resource_constraints: Vec<ResourceConstraints<'a>>,
 }
 
-impl Identification {
+impl Identification<'_> {
     /// Extract the license ID for Open Data licenses
     ///
     /// Based on section 3.6 from [Konventionen zu Metadaten][https://www.gdi-de.org/download/AK_Metadaten_Konventionen_zu_Metadaten.pdf].
     fn license(&self) -> Option<Cow<str>> {
         for resource_constraints in &self.resource_constraints {
-            if let Some(legal_constraints) = resource_constraints.legal_constraints.as_ref() {
+            if let Some(legal_constraints) = &resource_constraints.legal_constraints {
                 for use_constraints in &legal_constraints.use_constraints {
                     if use_constraints.restriction_code.value == "otherRestrictions" {
                         for other_constraints in &legal_constraints.other_constraints {
@@ -232,35 +234,35 @@ struct Abstract {
 }
 
 #[derive(Debug, Deserialize)]
-struct ResourceConstraints {
-    #[serde(rename = "MD_LegalConstraints")]
-    legal_constraints: Option<LegalConstraints>,
+struct ResourceConstraints<'a> {
+    #[serde(rename = "MD_LegalConstraints", borrow)]
+    legal_constraints: Option<LegalConstraints<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct LegalConstraints {
-    #[serde(rename = "useConstraints", default)]
-    use_constraints: Vec<UseConstraints>,
-    #[serde(rename = "otherConstraints", default)]
-    other_constraints: Vec<OtherConstraints>,
+struct LegalConstraints<'a> {
+    #[serde(rename = "useConstraints", default, borrow)]
+    use_constraints: Vec<UseConstraints<'a>>,
+    #[serde(rename = "otherConstraints", default, borrow)]
+    other_constraints: Vec<OtherConstraints<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct UseConstraints {
-    #[serde(rename = "MD_RestrictionCode")]
-    restriction_code: RestrictionCode,
+struct UseConstraints<'a> {
+    #[serde(rename = "MD_RestrictionCode", borrow)]
+    restriction_code: RestrictionCode<'a>,
 }
 
 #[derive(Debug, Deserialize)]
-struct RestrictionCode {
-    #[serde(rename = "codeListValue")]
-    value: String,
+struct RestrictionCode<'a> {
+    #[serde(rename = "codeListValue", borrow)]
+    value: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
-struct OtherConstraints {
-    #[serde(rename = "CharacterString")]
-    text: Option<String>,
+struct OtherConstraints<'a> {
+    #[serde(rename = "CharacterString", borrow)]
+    text: Option<&'a str>,
 }
 
 #[derive(Debug, Deserialize)]

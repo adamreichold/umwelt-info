@@ -2,7 +2,7 @@ use anyhow::Result;
 use cap_std::fs::Dir;
 use futures_util::stream::{iter, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_roxmltree::from_str;
+use serde_roxmltree::{from_doc, roxmltree::Document};
 
 use crate::harvester::{client::Client, csw, Source};
 
@@ -72,14 +72,11 @@ async fn fetch_datasets(
         })
         .await?;
 
-    let response = from_str::<SearchResults>(&body)?;
+    let document = Document::parse(&body)?;
 
-    let count = if let Some(summary) = response.summary {
-        summary.count.parse()?
-    } else {
-        0
-    };
+    let response = from_doc::<SearchResults>(&document)?;
 
+    let count = response.summary.map_or(0, |summary| summary.count);
     let results = response.records.len();
     let mut errors = 0;
 
@@ -106,13 +103,13 @@ struct SearchParams<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-struct SearchResults {
+struct SearchResults<'a> {
     summary: Option<Summary>,
-    #[serde(rename = "MD_Metadata")]
-    records: Vec<csw::Record>,
+    #[serde(rename = "MD_Metadata", borrow)]
+    records: Vec<csw::Record<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct Summary {
-    count: String,
+    count: usize,
 }
