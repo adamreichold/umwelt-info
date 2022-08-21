@@ -101,7 +101,7 @@
 
         {% for term in related_terms %}
 
-        <li><a href="javascript:add_term('{{ term }}')">{{ term }}</a></li>
+        <li>{{ term }}&nbsp;<a href="javascript:add_term('', '{{ term }}')">?</a>&nbsp;<a href="javascript:add_term('+', '{{ term }}')">+</a>&nbsp;<a href="javascript:add_term('-', '{{ term }}')">-</a></li>
 
         {% endfor %}
 
@@ -139,8 +139,8 @@
       const licenses_root = document.getElementsByName("licenses_root")[0];
       const form = document.getElementById("form");
 
-      function add_term(value) {
-        query.value += ` ${value}`;
+      function add_term(occurrence, value) {
+        query.value += ` ${occurrence}${value}`;
         form.submit();
       }
 
