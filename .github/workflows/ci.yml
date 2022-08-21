@@ -12,6 +12,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt -- --check
       - run: cargo clippy --all-targets -- --deny warnings --forbid unsafe-code
+      - run: |
+          pip install black flake8
+          black --check analysis
+          flake8 analysis
+
 
   test:
     runs-on: ubuntu-22.04
