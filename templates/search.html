@@ -28,15 +28,23 @@
 
     {% endfor %}
 
-    <p>
+    <p style="text-align: center">
 
-    {% for page in 1..=pages %}
+    {% for page in self.pages() %}
 
-      {% if page==params.page %} <b> {% endif %}
+      {% if page == 0 %}
 
-      <a href="?query={{ params.query|urlencode }}&page={{ page }}&results_per_page={{ params.results_per_page }}">{{ page }}</a>
+      &mldr;
 
-      {% if page==params.page %} </b> {% endif %}
+      {% else %}
+
+        {% if page == params.page %} <b> {% endif %}
+
+        <a href="?query={{ params.query|urlencode }}&page={{ page }}&results_per_page={{ params.results_per_page }}">{{ page }}</a>
+
+        {% if page==params.page %} </b> {% endif %}
+
+      {% endif %}
 
     {% endfor %}
 

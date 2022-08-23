@@ -106,6 +106,38 @@ struct SearchPage {
     results: Vec<SearchResult>,
 }
 
+impl SearchPage {
+    fn pages(&self) -> Vec<usize> {
+        let mut pages = Vec::new();
+
+        pages.extend(1..=self.pages.min(5));
+
+        let mut extend = |new_pages| {
+            for new_page in new_pages {
+                let last_page = *pages.last().unwrap();
+
+                if last_page < new_page {
+                    if last_page + 1 != new_page {
+                        pages.push(0);
+                    }
+
+                    pages.push(new_page);
+                }
+            }
+        };
+
+        if self.params.page > 2 {
+            extend(self.params.page - 2..=self.pages.min(self.params.page + 2))
+        }
+
+        if self.pages > 2 {
+            extend(self.pages - 2..=self.pages);
+        }
+
+        pages
+    }
+}
+
 #[derive(Serialize)]
 struct SearchResult {
     source: String,
