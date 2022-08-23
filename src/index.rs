@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
@@ -86,7 +87,7 @@ impl Searcher {
     ) -> Result<Results<impl Iterator<Item = Result<(String, String)>> + '_>> {
         let query = self.parser.parse_query(query)?;
 
-        let mut terms = Default::default();
+        let mut terms = BTreeMap::new();
         query.query_terms(&mut terms);
 
         let terms = terms

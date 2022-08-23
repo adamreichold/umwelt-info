@@ -20,6 +20,7 @@ use umwelt_info::{
     data_path_from_env,
     index::Searcher,
     server::{dataset::dataset, metrics::metrics, search::search, stats::Stats},
+    umthes,
 };
 
 #[tokio::main]
@@ -50,6 +51,8 @@ async fn main() -> Result<(), Error> {
             .build()?,
     ));
 
+    let similar_terms_cache = &*Box::leak(Box::new(umthes::similar_terms_cache()));
+
     let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
         data_path,
         ambient_authority(),
@@ -66,6 +69,7 @@ async fn main() -> Result<(), Error> {
         .route("/metrics", get(metrics))
         .layer(Extension(searcher))
         .layer(Extension(client))
+        .layer(Extension(similar_terms_cache))
         .layer(Extension(dir))
         .layer(Extension(stats));
 

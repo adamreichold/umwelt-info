@@ -6,6 +6,7 @@ use axum::{
     response::Response,
 };
 use cap_std::fs::Dir;
+use hashbrown::HashSet;
 use reqwest::Client;
 use serde::{
     de::{Deserializer, Error},
@@ -26,6 +27,7 @@ pub async fn search(
     accept: Accept,
     Extension(searcher): Extension<&'static Searcher>,
     Extension(client): Extension<&'static Client>,
+    Extension(similar_terms_cache): Extension<&'static umthes::SimilarTermsCache>,
     Extension(dir): Extension<&'static Dir>,
 ) -> Result<Response, ServerError> {
     fn inner(
@@ -77,7 +79,7 @@ pub async fn search(
             provenances,
             licenses,
             terms: results.terms,
-            related_terms: Vec::new(),
+            related_terms: HashSet::new(),
         };
 
         let dir = dir.open_dir("datasets")?;
@@ -99,10 +101,8 @@ pub async fn search(
 
     let mut page = spawn_blocking(|| inner(params, searcher, dir)).await??;
 
-    match umthes::fetch_similar_terms(client, &page.terms).await {
-        Ok(val) => page.related_terms = val,
-        Err(err) => tracing::warn!("Failed to fetch similar terms: {:#}", err),
-    }
+    page.related_terms =
+        umthes::fetch_similar_terms(client, similar_terms_cache, page.terms.iter()).await;
 
     Ok(accept.into_repsonse(page))
 }
@@ -156,7 +156,7 @@ struct SearchPage {
     provenances: Vec<(String, u64)>,
     licenses: Vec<(String, u64)>,
     terms: Vec<String>,
-    related_terms: Vec<String>,
+    related_terms: HashSet<String>,
 }
 
 impl SearchPage {
