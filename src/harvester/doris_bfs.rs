@@ -141,18 +141,21 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
             .select(&SELECTORS.abstract_selector)
             .next()
             .and_then(|element| element.value().attr("content"))
-            .unwrap_or_default()
-            .to_owned();
+            .map(ToOwned::to_owned);
     }
 
     let dataset = Dataset {
         title,
         description: r#abstract,
+        comment: None,
         license: License::DorisBfs,
+        contacts: Vec::new(),
         tags: Vec::new(),
+        region: None,
+        issued: None,
+        last_checked: None,
         source_url: url.into(),
         resources: SmallVec::new(),
-        issued: None,
     };
 
     write_dataset(dir, &identifier, dataset).await

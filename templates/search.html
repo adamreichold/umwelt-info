@@ -23,7 +23,7 @@
     <div>
       <h2><a href="/dataset/{{ result.source }}/{{ result.id }}">{{ result.dataset.title }}</a></h2>
 
-      <p>{{ result.dataset.description }}</p>
+      {% if let Some(description) = result.dataset.description %} <p>{{ description }}</p> {% endif %}
     </div>
 
     {% endfor %}

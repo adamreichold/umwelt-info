@@ -1,3 +1,4 @@
+mod contact;
 mod license;
 mod resource;
 
@@ -11,18 +12,23 @@ use smallvec::SmallVec;
 use time::Date;
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
+pub use contact::Contact;
 pub use license::License;
 pub use resource::{Resource, Type as ResourceType};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Dataset {
     pub title: String,
-    pub description: String,
+    pub description: Option<String>,
+    pub comment: Option<String>,
     pub license: License,
+    pub contacts: Vec<Contact>,
     pub tags: Vec<String>,
+    pub region: Option<String>,
+    pub issued: Option<Date>,
+    pub last_checked: Option<Date>,
     pub source_url: String,
     pub resources: SmallVec<[Resource; 4]>,
-    pub issued: Option<Date>,
 }
 
 /// Previously deployed version of the above [`Dataset`] type.
@@ -53,12 +59,16 @@ impl Dataset {
 
                 Self {
                     title: old_val.title,
-                    description: old_val.description,
+                    description: Some(old_val.description),
+                    comment: None,
                     license: old_val.license,
+                    contacts: Vec::new(),
                     tags: old_val.tags,
+                    region: None,
+                    issued: old_val.issued,
+                    last_checked: None,
                     source_url: old_val.source_url,
                     resources: old_val.resources.into(),
-                    issued: old_val.issued,
                 }
             }
         };
