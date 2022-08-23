@@ -7,6 +7,7 @@ use anyhow::{Context, Result};
 use bincode::{deserialize, serialize};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
+use time::Date;
 use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
 pub use license::License;
@@ -20,6 +21,7 @@ pub struct Dataset {
     pub tags: Vec<String>,
     pub source_url: String,
     pub resources: Vec<Resource>,
+    pub issued: Option<Date>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -49,6 +51,7 @@ impl Dataset {
                     tags: Vec::new(),
                     source_url: old_val.source_url,
                     resources: Vec::new(),
+                    issued: None,
                 }
             }
         };

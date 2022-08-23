@@ -1,22 +1,24 @@
 //! This harvester maps the "Recherche" function available at Wasser-DE into our catalogue.
 //!
-//! | Original field    | Mapped field | Comment                                                      |
-//! | ----------------- | ------------ | ------------------------------------------------------------ |
-//! | ID                | id           | Assumed to be numeric and redundant                          |
-//! | metadataid        |              |                                                              |
-//! | NAME              | title        | Document skipped if missing                                  |
-//! | TEASERTEXT        | description  | TEASERTEXT preferred over AUTOTEASERTEXT if both are present |
-//! | AUTOTEASERTEXT    |              |                                                              |
-//! | LICENSE_ID        |              |                                                              |
-//! | LICENSE_NAME_KURZ | license      | LICENSE_ID and LICENSE_NAME_LANG considered redundant        |
-//! | LICENSE_NAME_LANG |              |                                                              |
-//! | RICHTLINIE_IDS    | tags         |                                                              |
-//! | URL               | resource     |                                                              |
+//! | Original field         | Mapped field       | Comment                                                      |
+//! | -----------------------| -------------------| ------------------------------------------------------------ |
+//! | ID                     | id                 | Assumed to be numeric and redundant                          |
+//! | metadataid             |                    |                                                              |
+//! | NAME                   | title              | Document skipped if missing                                  |
+//! | TEASERTEXT             | description        | TEASERTEXT preferred over AUTOTEASERTEXT if both are present |
+//! | AUTOTEASERTEXT         |                    |                                                              |
+//! | LICENSE_ID             |                    |                                                              |
+//! | LICENSE_NAME_KURZ      | license            | LICENSE_ID and LICENSE_NAME_LANG considered redundant        |
+//! | LICENSE_NAME_LANG      |                    |                                                              |
+//! | RICHTLINIE_IDS         | tags               |                                                              |
+//! | URL                    | resource           |                                                              |
+//! | JAHR_VEROEFFENTLICHUNG | issued             | http://purl.org/dc/terms/issued                              |
 //!
 use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
+use time::Date;
 
 use crate::{
     dataset::{Dataset, Resource},
@@ -71,6 +73,11 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         .or(document.auto_teaser_text)
         .unwrap_or_default();
 
+    let issued = document
+        .year_issued
+        .map(|year_issued| Date::from_ordinal_date(year_issued, 1))
+        .transpose()?;
+
     let dataset = Dataset {
         title,
         description,
@@ -78,6 +85,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         tags,
         source_url: source.url.clone().into(),
         resources: vec![Resource::unknown(document.url)],
+        issued,
     };
 
     write_dataset(dir, &document.id.to_string(), dataset).await
@@ -114,6 +122,8 @@ struct Document {
     directive: Option<String>,
     #[serde(rename = "URL")]
     url: String,
+    #[serde(rename = "JAHR_VEROEFFENTLICHUNG")]
+    year_issued: Option<i32>,
 }
 
 impl Document {

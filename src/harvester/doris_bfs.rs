@@ -170,6 +170,7 @@ async fn fetch_dataset(dir: &Dir, client: &Client, source: &Source, handle: &str
         tags: Vec::new(),
         source_url: url.into(),
         resources: Vec::new(),
+        issued: None,
     };
 
     write_dataset(dir, &identifier, dataset).await
