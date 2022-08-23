@@ -120,6 +120,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> 
         tags: Vec::new(),
         source_url: source.source_url().replace("{{name}}", &package.name),
         resources,
+        issued: None,
     };
 
     write_dataset(dir, &package.id, dataset).await
