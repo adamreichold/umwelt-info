@@ -25,12 +25,18 @@ pub struct Dataset {
     pub issued: Option<Date>,
 }
 
+/// Previously deployed version of the above [`Dataset`] type.
+///
+/// It will be updated when a new harvester has been deployed. Feature branches should only modify [`Dataset`] and the mapping between both types defined by [`Dataset::read`].
 #[derive(Debug, Deserialize, Serialize)]
 struct OldDataset {
     pub title: String,
     pub description: String,
     pub license: License,
+    pub tags: Vec<String>,
     pub source_url: String,
+    pub resources: Vec<Resource>,
+    pub issued: Option<Date>,
 }
 
 impl Dataset {
@@ -49,10 +55,10 @@ impl Dataset {
                     title: old_val.title,
                     description: old_val.description,
                     license: old_val.license,
-                    tags: Vec::new(),
+                    tags: old_val.tags,
                     source_url: old_val.source_url,
-                    resources: SmallVec::new(),
-                    issued: None,
+                    resources: old_val.resources.into(),
+                    issued: old_val.issued,
                 }
             }
         };
