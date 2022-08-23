@@ -93,16 +93,20 @@ pub async fn translate_dataset(dir: &Dir, source: &Source, record: Record<'_>) -
     let license = identification.license().as_deref().into();
 
     let title = identification.citation.inner.title.text;
-    let description = identification.r#abstract.text.unwrap_or_default();
+    let description = identification.r#abstract.text;
 
     let dataset = Dataset {
         title,
         description,
+        comment: None,
         license,
+        contacts: Vec::new(),
         tags: Vec::new(),
+        region: None,
+        issued: None,
+        last_checked: None,
         source_url: source.source_url().replace("{{id}}", identifier),
         resources: SmallVec::new(),
-        issued: None,
     };
 
     write_dataset(dir, identifier, dataset).await

@@ -30,7 +30,9 @@ fn schema() -> Schema {
     schema.add_text_field("id", STORED);
 
     schema.add_text_field("title", text.clone());
-    schema.add_text_field("description", text);
+    schema.add_text_field("description", text.clone());
+
+    schema.add_text_field("comment", text);
 
     schema.add_text_field("license", STRING);
 
@@ -157,7 +159,14 @@ impl Indexer {
         doc.add_text(self.fields.id, id);
 
         doc.add_text(self.fields.title, dataset.title);
-        doc.add_text(self.fields.description, dataset.description);
+
+        if let Some(description) = dataset.description {
+            doc.add_text(self.fields.description, description);
+        }
+
+        if let Some(comment) = dataset.comment {
+            doc.add_text(self.fields.comment, comment);
+        }
 
         doc.add_text(self.fields.license, dataset.license.to_string());
 
@@ -182,6 +191,7 @@ struct Fields {
     id: Field,
     title: Field,
     description: Field,
+    comment: Field,
     license: Field,
     tags: Field,
     accesses: Field,
@@ -194,6 +204,7 @@ impl Fields {
 
         let title = schema.get_field("title").unwrap();
         let description = schema.get_field("description").unwrap();
+        let comment = schema.get_field("comment").unwrap();
 
         let license = schema.get_field("license").unwrap();
 
@@ -206,6 +217,7 @@ impl Fields {
             id,
             title,
             description,
+            comment,
             license,
             tags,
             accesses,

@@ -9,11 +9,31 @@
 
     <h1><a href="{{ dataset.source_url }}">{{ dataset.title }}</a></h1>
 
+    {% if let Some(description) = dataset.description %} <p>Description: {{ description }}</p> {% endif %}
+
+    {% if let Some(comment) = dataset.comment %} <p>Comment: {{ comment }}</p> {% endif %}
+
     <h3>Tags: {{ dataset.tags|join(", ") }}</h3>
 
-    <p>{{ dataset.description }}</p>
+    {% if let Some(region) = dataset.region %} <p>Region: {{ region }}</p> {% endif %}
 
     <p>License: {% if let Some(license_url) = dataset.license.url() %} <a href="{{ license_url }}">{{ dataset.license }}</a> {% else %} {{ dataset.license }} {% endif %}</p>
+
+    <h3>Contacts</h3>
+
+    <ul>
+
+      {% for contact in dataset.contacts %}
+
+      <li>{{ contact.name }} {{ contact.emails|join(", ") }}</li>
+
+      {% endfor %}
+
+    </ul>
+
+    {% if let Some(issued) = dataset.issued %} <p>Issued: {{ issued }}</p> {% endif %}
+
+    {% if let Some(last_checked) = dataset.last_checked %} <p>Last checked: {{ last_checked }}</p> {% endif %}
 
     <h3>Resources</h3>
 

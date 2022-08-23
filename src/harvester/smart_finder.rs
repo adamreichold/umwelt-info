@@ -75,12 +75,16 @@ async fn fetch_datasets(
 async fn translate_dataset(dir: &Dir, source: &Source, doc: Document<'_>) -> Result<()> {
     let dataset = Dataset {
         title: doc.title,
-        description: doc.description,
+        description: Some(doc.description),
+        comment: None,
         license: License::Unknown,
+        contacts: Vec::new(),
         tags: Vec::new(),
+        region: None,
+        issued: None,
+        last_checked: None,
         source_url: source.source_url().replace("{{id}}", &doc.id),
         resources: SmallVec::new(),
-        issued: None,
     };
 
     write_dataset(dir, &doc.id, dataset).await

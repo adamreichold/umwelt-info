@@ -1,28 +1,42 @@
 //! This harvester maps the "Recherche" function available at Wasser-DE into our catalogue.
 //!
-//! | Original field         | Mapped field       | Comment                                                      |
-//! | -----------------------| -------------------| ------------------------------------------------------------ |
-//! | ID                     | id                 | Assumed to be numeric and redundant                          |
-//! | metadataid             |                    |                                                              |
-//! | NAME                   | title              | Document skipped if missing                                  |
-//! | TEASERTEXT             | description        | TEASERTEXT preferred over AUTOTEASERTEXT if both are present |
-//! | AUTOTEASERTEXT         |                    |                                                              |
-//! | LICENSE_ID             |                    |                                                              |
-//! | LICENSE_NAME_KURZ      | license            | LICENSE_ID and LICENSE_NAME_LANG considered redundant        |
-//! | LICENSE_NAME_LANG      |                    |                                                              |
-//! | RICHTLINIE_IDS         | tags               |                                                              |
-//! | URL                    | resource           |                                                              |
-//! | JAHR_VEROEFFENTLICHUNG | issued             | http://purl.org/dc/terms/issued                              |
-//!
+//! | Original field            | Mapped field       | Comment                                                      |
+//! | ------------------------- | ------------------ | ------------------------------------------------------------ |
+//! | ID                        | id                 | Assumed to be numeric and redundant                          |
+//! | metadataid                |                    |                                                              |
+//! | NAME                      | title              | Document skipped if missing                                  |
+//! | TEASERTEXT                | description        | TEASERTEXT preferred over AUTOTEASERTEXT if both are present |
+//! | AUTOTEASERTEXT            |                    |                                                              |
+//! | LICENSE_ID                |                    |                                                              |
+//! | LICENSE_NAME_KURZ         | license            | LICENSE_ID and LICENSE_NAME_LANG considered redundant        |
+//! | LICENSE_NAME_LANG         |                    |                                                              |
+//! | RICHTLINIE_IDS            | tags               |                                                              |
+//! | URL                       | resource           |                                                              |
+//! | JAHR_VEROEFFENTLICHUNG    | issued             | http://purl.org/dc/terms/issued                              |
+//! | KOMMENTAR                 | comment            |                                                              |
+//! | LAST_CHECKED              | last_checked       | Last time the Wasser-DE staff checked this document          |
+//! | REGION_NAME               | region             | Geographic region. Can be a city, country, state or river    |
+//! | REGION_ID                 |                    |                                                              |
+//! | ANSPRECHPARTNER_NAME      | contact_names      |                                                              |
+//! | ANSPRECHPARTNER_EMAIL     | contact_emails     |                                                              |
+//! | ANSPRECHPARTNER_NAME_RL1  | contact_names      |                                                              |
+//! | ANSPRECHPARTNER_EMAIL_RL1 | contact_emails     |                                                              |
+//! | ANSPRECHPARTNER_NAME_RL2  | contact_names      |                                                              |
+//! | ANSPRECHPARTNER_EMAIL_RL2 | contact_emails     |                                                              |
+//! | ANSPRECHPARTNER_NAME_RL3  | contact_names      |                                                              |
+//! | ANSPRECHPARTNER_EMAIL_RL3 | contact_emails     |                                                              |
+//! | ANSPRECHPARTNER_NAME_RL4  | contact_names      |                                                              |
+//! | ANSPRECHPARTNER_EMAIL_RL4 | contact_emails     |                                                              |
+//!  
 use anyhow::{anyhow, Result};
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 use smallvec::smallvec;
-use time::Date;
+use time::{macros::format_description, Date};
 
 use crate::{
-    dataset::{Dataset, Resource},
+    dataset::{Contact, Dataset, Resource},
     harvester::{client::Client, write_dataset, Source},
 };
 
@@ -69,24 +83,45 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         .name
         .ok_or_else(|| anyhow!("Document {} has no title", document.id))?;
 
-    let description = document
-        .teaser_text
-        .or(document.auto_teaser_text)
-        .unwrap_or_default();
+    let description = document.teaser_text.or(document.auto_teaser_text);
 
     let issued = document
         .year_issued
         .map(|year_issued| Date::from_ordinal_date(year_issued, 1))
         .transpose()?;
 
+    let last_checked = document
+        .last_checked
+        .map(|last_checked| Date::parse(&last_checked, format_description!("[year]-[month]-[day]")))
+        .transpose()?;
+
+    let mut contacts = Vec::new();
+
+    let mut push_contact = |name: Option<String>, email: Option<String>| {
+        contacts.extend(name.map(|name| Contact {
+            name,
+            emails: email.into_iter().collect(),
+        }));
+    };
+
+    push_contact(document.contact_name, document.contact_email);
+    push_contact(document.contact_name_rl1, document.contact_email_rl1);
+    push_contact(document.contact_name_rl2, document.contact_email_rl2);
+    push_contact(document.contact_name_rl3, document.contact_email_rl3);
+    push_contact(document.contact_name_rl4, document.contact_email_rl4);
+
     let dataset = Dataset {
         title,
         description,
+        comment: document.comment,
         license: document.license.as_str().into(),
+        contacts,
         tags,
+        region: document.region_name,
+        issued,
+        last_checked,
         source_url: source.url.clone().into(),
         resources: smallvec![Resource::unknown(document.url)],
-        issued,
     };
 
     write_dataset(dir, &document.id.to_string(), dataset).await
@@ -125,6 +160,32 @@ struct Document {
     url: String,
     #[serde(rename = "JAHR_VEROEFFENTLICHUNG")]
     year_issued: Option<i32>,
+    #[serde(rename = "KOMMENTAR")]
+    comment: Option<String>,
+    #[serde(rename = "LAST_CHECKED")]
+    last_checked: Option<String>,
+    #[serde(rename = "REGION_NAME")]
+    region_name: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_NAME")]
+    contact_name: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_EMAIL")]
+    contact_email: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_NAME_RL1")]
+    contact_name_rl1: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL1")]
+    contact_email_rl1: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_NAME_RL2")]
+    contact_name_rl2: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL2")]
+    contact_email_rl2: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_NAME_RL3")]
+    contact_name_rl3: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL3")]
+    contact_email_rl3: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_NAME_RL4")]
+    contact_name_rl4: Option<String>,
+    #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL4")]
+    contact_email_rl4: Option<String>,
 }
 
 impl Document {

@@ -96,12 +96,16 @@ async fn translate_dataset(dir: &Dir, source: &Source, package: Package<'_>) -> 
 
     let dataset = Dataset {
         title: package.title,
-        description: package.notes.unwrap_or_default(),
+        description: package.notes,
+        comment: None,
         license,
+        contacts: Vec::new(),
         tags: Vec::new(),
+        region: None,
+        issued: None,
+        last_checked: None,
         source_url: source.source_url().replace("{{name}}", &package.name),
         resources,
-        issued: None,
     };
 
     write_dataset(dir, &package.id, dataset).await
