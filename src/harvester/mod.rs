@@ -3,6 +3,7 @@ pub mod client;
 pub mod csw;
 pub mod doris_bfs;
 pub mod geo_network_q;
+pub mod smart_finder;
 pub mod wasser_de;
 
 use std::fmt;
@@ -161,4 +162,5 @@ pub enum Type {
     WasserDe,
     GeoNetworkQ,
     DorisBfs,
+    SmartFinder,
 }

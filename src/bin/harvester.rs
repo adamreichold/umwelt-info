@@ -10,7 +10,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use umwelt_info::{
     data_path_from_env,
     harvester::{
-        ckan, client::Client, csw, doris_bfs, geo_network_q, wasser_de, Config, Source, Type,
+        ckan, client::Client, csw, doris_bfs, geo_network_q, smart_finder, wasser_de, Config,
+        Source, Type,
     },
     metrics::Metrics,
 };
@@ -99,8 +100,9 @@ async fn harvest(
         Type::Ckan => ckan::harvest(&dir, client, &source).await,
         Type::Csw => csw::harvest(&dir, client, &source).await,
         Type::WasserDe => wasser_de::harvest(&dir, client, &source).await,
-        Type::DorisBfs => doris_bfs::harvest(&dir, client, &source).await,
         Type::GeoNetworkQ => geo_network_q::harvest(&dir, client, &source).await,
+        Type::DorisBfs => doris_bfs::harvest(&dir, client, &source).await,
+        Type::SmartFinder => smart_finder::harvest(&dir, client, &source).await,
     };
 
     let (count, transmitted, failed) =

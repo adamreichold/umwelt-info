@@ -38,3 +38,9 @@ type = "doris_bfs"
 url = "https://doris.bfs.de/"
 batch_size = 10
 concurrency = 5
+
+[[sources]]
+name = "geodatenkatalog-bfg"
+type = "smart_finder"
+url = "https://geoportal.bafg.de/smartfinderServer/iso/select"
+source_url = "https://geoportal.bafg.de/smartfinderClient/js/apps/portal-integration/index.html?lang=de#/datasets/iso/{{id}}"
