@@ -1,9 +1,8 @@
 use std::fmt;
 
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{data_path_from_env, geonames::GeoNames};
+use crate::geonames::GEO_NAMES;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Region {
@@ -13,11 +12,11 @@ pub enum Region {
 
 impl From<&'_ str> for Region {
     fn from(val: &str) -> Self {
-        if let Some(id) = GEO_NAMES.r#match(val).unwrap() {
-            Self::GeoName(id)
-        } else {
-            Self::Other(val.to_owned())
+        if let Some(id) = GEO_NAMES.r#match(val) {
+            return Self::GeoName(id);
         }
+
+        Self::Other(val.to_owned())
     }
 }
 
@@ -26,12 +25,10 @@ impl fmt::Display for Region {
         match self {
             Self::Other(val) => fmt.write_str(val),
             Self::GeoName(id) => {
-                let name = GEO_NAMES.resolve(*id).unwrap();
+                let name = GEO_NAMES.resolve(*id);
 
                 fmt.write_str(&name)
             }
         }
     }
 }
-
-static GEO_NAMES: Lazy<GeoNames> = Lazy::new(|| GeoNames::open(&data_path_from_env()).unwrap());
