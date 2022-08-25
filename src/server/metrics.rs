@@ -30,7 +30,7 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         let mut harvests = metrics.harvests.into_iter().collect::<Vec<_>>();
 
-        harvests.sort_unstable_by_key(|(_, harvest)| Reverse(harvest.start));
+        harvests.sort_unstable_by_key(|(_, harvest)| Reverse(harvest.failed));
 
         let (sum_count, sum_transmitted, sum_failed) = harvests.iter().fold(
             (0, 0, 0),
