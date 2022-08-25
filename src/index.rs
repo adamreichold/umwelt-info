@@ -11,8 +11,9 @@ use tantivy::{
         Facet, FacetOptions, Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions,
         Value, FAST, STORED, STRING,
     },
+    store::Compressor,
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
-    Document, Index, IndexReader, IndexWriter, Score, SegmentReader, Term,
+    Document, Index, IndexReader, IndexSettings, IndexWriter, Score, SegmentReader, Term,
 };
 
 use crate::dataset::Dataset;
@@ -176,7 +177,14 @@ impl Indexer {
         let schema = schema();
         let fields = Fields::new(&schema);
 
-        let index = Index::open_or_create(MmapDirectory::open(index_path)?, schema)?;
+        let index = Index::builder()
+            .schema(schema)
+            .settings(IndexSettings {
+                docstore_compression: Compressor::None,
+                ..Default::default()
+            })
+            .open_or_create(MmapDirectory::open(index_path)?)?;
+
         register_tokenizers(&index);
 
         let writer = index.writer(128 << 20)?;
