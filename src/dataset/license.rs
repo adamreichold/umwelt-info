@@ -114,10 +114,18 @@ impl From<&'_ str> for License {
                 // Nutzungsbestimmungen für die Bereitstellung von Geodaten des Bundes
                 ("geoNutz/20130319", License::GeoNutz20130319),
                 ("geonutz/20130319", License::GeoNutz20130319),
+                (
+                    "http://dcat-ap.de/def/licenses/geonutz/20130319",
+                    License::GeoNutz20130319,
+                ),
                 ("geonutzv-de-2013-03-19", License::GeoNutz20130319),
                 // Nutzungsbestimmungen für die Bereitstellung von Geodaten des Landes Berlin
                 ("geoNutz/20131001", License::GeoNutz20131001),
                 ("geonutz/20131001", License::GeoNutz20131001),
+                (
+                    "http://dcat-ap.de/def/licenses/geonutz/20131001",
+                    License::GeoNutz20131001,
+                ),
             ]
             .into()
         });
