@@ -1,5 +1,6 @@
 mod contact;
 mod license;
+mod region;
 mod resource;
 mod tag;
 
@@ -16,6 +17,7 @@ use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
 
 pub use contact::Contact;
 pub use license::License;
+pub use region::Region;
 pub use resource::{Resource, Type as ResourceType};
 pub use tag::Tag;
 
@@ -28,7 +30,7 @@ pub struct Dataset {
     pub license: License,
     pub contacts: Vec<Contact>,
     pub tags: Vec<Tag>,
-    pub region: Option<String>,
+    pub region: Option<Region>,
     pub issued: Option<Date>,
     pub last_checked: Option<Date>,
     pub source_url: String,

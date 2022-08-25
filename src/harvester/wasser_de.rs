@@ -118,7 +118,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         license: document.license.as_str().into(),
         contacts,
         tags,
-        region: document.region_name,
+        region: document.region_name.as_deref().map(Into::into),
         issued,
         last_checked,
         source_url: source.url.clone().into(),

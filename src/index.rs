@@ -9,7 +9,7 @@ use tantivy::{
     query::{BooleanQuery, QueryParser, TermQuery},
     schema::{
         Facet, FacetOptions, Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions,
-        Value, FAST, STORED, STRING,
+        FAST, STORED, STRING,
     },
     store::Compressor,
     tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
@@ -135,15 +135,19 @@ impl Searcher {
         let iter = docs.into_iter().map(move |(_score, doc)| {
             let doc = searcher.doc(doc)?;
 
-            let source = match doc.get_first(self.fields.source) {
-                Some(Value::Str(source)) => source.clone(),
-                _ => unreachable!(),
-            };
+            let source = doc
+                .get_first(self.fields.source)
+                .unwrap()
+                .as_text()
+                .unwrap()
+                .to_owned();
 
-            let id = match doc.get_first(self.fields.id) {
-                Some(Value::Str(id)) => id.clone(),
-                _ => unreachable!(),
-            };
+            let id = doc
+                .get_first(self.fields.id)
+                .unwrap()
+                .as_text()
+                .unwrap()
+                .to_owned();
 
             Ok((source, id))
         });
