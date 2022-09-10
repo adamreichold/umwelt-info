@@ -49,14 +49,18 @@ struct OldDataset {
 }
 
 impl Dataset {
-    pub fn read(mut file: File) -> Result<Self> {
-        let mut buf = Vec::new();
-        file.read_to_end(&mut buf)?;
+    pub fn read(file: File) -> Result<Self> {
+        Self::read_with(file, &mut Vec::new())
+    }
 
-        let val = match decode_from_slice::<Dataset, _>(&buf, standard()) {
+    pub fn read_with(mut file: File, buf: &mut Vec<u8>) -> Result<Self> {
+        buf.clear();
+        file.read_to_end(buf)?;
+
+        let val = match decode_from_slice::<Dataset, _>(buf, standard()) {
             Ok((val, _)) => val,
             Err(err) => {
-                let (old_val, _) = decode_from_slice::<OldDataset, _>(&buf, standard())
+                let (old_val, _) = decode_from_slice::<OldDataset, _>(buf, standard())
                     .map_err(|_old_err| err)
                     .context("Failed to deserialize dataset")?;
 

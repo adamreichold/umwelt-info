@@ -38,11 +38,11 @@ fn main() -> Result<()> {
                 .open_dir()?
                 .entries()?
                 .par_bridge()
-                .try_for_each(|dataset| -> Result<()> {
+                .try_for_each_with(Vec::new(), |buf, dataset| -> Result<()> {
                     let dataset = dataset?;
                     let dataset_id = dataset.file_name().into_string().unwrap();
 
-                    let dataset = Dataset::read(dataset.open()?)?;
+                    let dataset = Dataset::read_with(dataset.open()?, buf)?;
 
                     let accesses = accesses.and_then(|accesses| accesses.get(&dataset_id));
 
