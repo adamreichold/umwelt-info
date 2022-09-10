@@ -5,7 +5,10 @@ mod resource;
 use std::io::Read;
 
 use anyhow::{Context, Result};
-use bincode::{deserialize, serialize};
+use bincode::{
+    config::standard,
+    serde::{decode_from_slice, encode_to_vec},
+};
 use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -50,10 +53,10 @@ impl Dataset {
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
 
-        let val = match deserialize::<Dataset>(&buf) {
-            Ok(val) => val,
+        let val = match decode_from_slice::<Dataset, _>(&buf, standard()) {
+            Ok((val, _)) => val,
             Err(err) => {
-                let old_val = deserialize::<OldDataset>(&buf)
+                let (old_val, _) = decode_from_slice::<OldDataset, _>(&buf, standard())
                     .map_err(|_old_err| err)
                     .context("Failed to deserialize dataset")?;
 
@@ -77,7 +80,7 @@ impl Dataset {
     }
 
     pub async fn write(&self, file: File) -> Result<()> {
-        let buf = serialize(self)?;
+        let buf = encode_to_vec(self, standard())?;
 
         let mut file = AsyncFile::from_std(file.into_std());
         file.write_all(&buf).await?;
