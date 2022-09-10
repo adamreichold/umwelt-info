@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use askama::Template;
 use axum::{
-    extract::{Extension, Query},
+    extract::{Query, State},
     response::Response,
 };
 use cap_std::fs::Dir;
@@ -22,8 +22,8 @@ use crate::{
 pub async fn search(
     Query(params): Query<SearchParams>,
     accept: Accept,
-    Extension(searcher): Extension<&'static Searcher>,
-    Extension(dir): Extension<&'static Dir>,
+    State(searcher): State<&'static Searcher>,
+    State(dir): State<&'static Dir>,
 ) -> Result<Response, ServerError> {
     fn inner(
         params: SearchParams,

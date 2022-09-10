@@ -10,11 +10,39 @@ use anyhow::Error;
 use askama::Template;
 use axum::{
     async_trait,
-    extract::FromRequestParts,
+    extract::{FromRef, FromRequestParts},
     http::{header::ACCEPT, request::Parts, StatusCode},
     response::{Html, IntoResponse, Json, Response},
 };
+use cap_std::fs::Dir;
+use parking_lot::Mutex;
 use serde::Serialize;
+
+use crate::{index::Searcher, server::stats::Stats};
+
+pub struct State {
+    pub searcher: Searcher,
+    pub dir: Dir,
+    pub stats: Mutex<Stats>,
+}
+
+impl FromRef<&'static State> for &'static Searcher {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.searcher
+    }
+}
+
+impl FromRef<&'static State> for &'static Dir {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.dir
+    }
+}
+
+impl FromRef<&'static State> for &'static Mutex<Stats> {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.stats
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Accept {

@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 
 use askama::Template;
-use axum::{extract::Extension, response::Html};
+use axum::{extract::State, response::Html};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use tokio::task::spawn_blocking;
@@ -12,7 +12,7 @@ use crate::{
     server::{filters, stats::Stats, ServerError},
 };
 
-pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<String>, ServerError> {
+pub async fn metrics(State(dir): State<&'static Dir>) -> Result<Html<String>, ServerError> {
     fn inner(dir: &Dir) -> Result<Html<String>, ServerError> {
         let stats = Stats::read(dir)?;
 
