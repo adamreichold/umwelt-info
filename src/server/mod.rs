@@ -10,8 +10,8 @@ use anyhow::Error;
 use askama::Template;
 use axum::{
     async_trait,
-    extract::{FromRequest, RequestParts},
-    http::{header::ACCEPT, StatusCode},
+    extract::FromRequestParts,
+    http::{header::ACCEPT, request::Parts, StatusCode},
     response::{Html, IntoResponse, Json, Response},
 };
 use serde::Serialize;
@@ -36,15 +36,15 @@ impl Accept {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for Accept
+impl<S> FromRequestParts<S> for Accept
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = Infallible;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        if let Some(accept) = req
-            .headers()
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if let Some(accept) = parts
+            .headers
             .get(ACCEPT)
             .and_then(|header| header.to_str().ok())
         {
