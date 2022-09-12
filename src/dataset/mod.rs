@@ -13,7 +13,10 @@ use cap_std::fs::File;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use time::Date;
-use tokio::{fs::File as AsyncFile, io::AsyncWriteExt};
+use tokio::{
+    fs::File as AsyncFile,
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 
 pub use contact::Contact;
 pub use license::License;
@@ -49,14 +52,23 @@ struct OldDataset {
 }
 
 impl Dataset {
-    pub fn read(file: File) -> Result<Self> {
-        Self::read_with(file, &mut Vec::new())
+    pub async fn read(file: File) -> Result<Self> {
+        let mut buf = Vec::new();
+
+        let mut file = AsyncFile::from_std(file.into_std());
+        file.read_to_end(&mut buf).await?;
+
+        Self::read_inner(&buf)
     }
 
     pub fn read_with(mut file: File, buf: &mut Vec<u8>) -> Result<Self> {
         buf.clear();
         file.read_to_end(buf)?;
 
+        Self::read_inner(buf)
+    }
+
+    fn read_inner(buf: &[u8]) -> Result<Self> {
         let val = match decode_from_slice::<Dataset, _>(buf, standard()) {
             Ok((val, _)) => val,
             Err(err) => {
