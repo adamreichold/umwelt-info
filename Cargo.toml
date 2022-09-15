@@ -52,4 +52,5 @@ assets = [
     ["deployment/indexer.service", "etc/systemd/system/", "644"],
     ["deployment/server.service", "etc/systemd/system/", "644"],
     ["assets/*", "usr/share/umwelt-info/assets/", "644"],
+    ["assets/swagger-ui/*", "usr/share/umwelt-info/assets/swagger-ui/", "644"],
 ]
