@@ -33,7 +33,7 @@ time = { version = "0.3", features = ["formatting", "macros"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "fs", "parking_lot"] }
 toml = "0.5"
 tower = { version = "0.4", features = ["limit", "load-shed"] }
-tower-http = { version = "0.3", features = ["trace"] }
+tower-http = { version = "0.3", features = ["trace", "fs"] }
 tracing = { version = "0.1", features = ["release_max_level_debug"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = { version = "2.2", features = ["serde"] }
@@ -51,4 +51,5 @@ assets = [
     ["deployment/harvester.timer", "etc/systemd/system/", "644"],
     ["deployment/indexer.service", "etc/systemd/system/", "644"],
     ["deployment/server.service", "etc/systemd/system/", "644"],
+    ["assets/*", "usr/share/umwelt-info/assets/", "644"],
 ]

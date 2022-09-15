@@ -1,8 +1,15 @@
-use std::env::var;
+use std::env::{var, var_os};
+use std::io::Error as IoError;
 use std::net::SocketAddr;
 
 use anyhow::Error;
-use axum::{extract::Extension, response::Redirect, routing::get, Router, Server};
+use axum::{
+    extract::Extension,
+    http::StatusCode,
+    response::Redirect,
+    routing::{get, get_service},
+    Router, Server,
+};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
 use tokio::{
@@ -12,7 +19,10 @@ use tokio::{
 use tower::{
     limit::GlobalConcurrencyLimitLayer, load_shed::LoadShedLayer, make::Shared, ServiceBuilder,
 };
-use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+use tower_http::{
+    services::ServeDir,
+    trace::{DefaultMakeSpan, TraceLayer},
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use umwelt_info::{
@@ -29,6 +39,8 @@ async fn main() -> Result<(), Error> {
         .init();
 
     let data_path = data_path_from_env();
+
+    let assets_path = var_os("ASSETS_PATH").expect("Environment variable ASSETS_PATH not set");
 
     let bind_addr = var("BIND_ADDR")
         .expect("Environment variable BIND_ADDR not set")
@@ -51,14 +63,18 @@ async fn main() -> Result<(), Error> {
 
     spawn(write_stats(dir, stats));
 
-    let router = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/search") }))
-        .route("/search", get(search))
-        .route("/dataset/:source/:id", get(dataset))
-        .route("/metrics", get(metrics))
-        .layer(Extension(searcher))
-        .layer(Extension(dir))
-        .layer(Extension(stats));
+    let router =
+        Router::new()
+            .route("/", get(|| async { Redirect::permanent("/search") }))
+            .route("/search", get(search))
+            .route("/dataset/:source/:id", get(dataset))
+            .route("/metrics", get(metrics))
+            .fallback(get_service(ServeDir::new(assets_path)).handle_error(
+                |err: IoError| async move { (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()) },
+            ))
+            .layer(Extension(searcher))
+            .layer(Extension(dir))
+            .layer(Extension(stats));
 
     let make_service = Shared::new(
         ServiceBuilder::new()

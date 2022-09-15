@@ -7,7 +7,7 @@ RequiresMountsFor=/var/lib/umwelt-info
 [Service]
 User=umwelt-info
 Group=umwelt-info
-Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info BIND_ADDR=0.0.0.0:8080 REQUEST_LIMIT=128
+Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info ASSETS_PATH=/usr/share/umwelt-info/assets BIND_ADDR=0.0.0.0:8080 REQUEST_LIMIT=128
 
 ExecStart=server
 Restart=always
