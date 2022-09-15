@@ -7,6 +7,8 @@
 
   <body>
 
+    <a href="/swagger-ui/" style="float: right">API</a>
+
     <h1><a href="{{ dataset.source_url }}">{{ dataset.title }}</a></h1>
 
     {% if let Some(description) = dataset.description %} <p>Description: {{ description }}</p> {% endif %}
