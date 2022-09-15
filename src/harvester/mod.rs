@@ -9,8 +9,9 @@ pub mod wasser_de;
 use std::fmt;
 use std::future::Future;
 use std::io::Read;
+use std::str::FromStr;
 
-use anyhow::{ensure, Result};
+use anyhow::{anyhow, ensure, Error, Result};
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
 use futures_util::stream::{iter, StreamExt};
 use hashbrown::HashSet;
@@ -104,6 +105,7 @@ impl Config {
 pub struct Source {
     pub name: String,
     pub r#type: Type,
+    pub group: Group,
     url: Url,
     filter: Option<String>,
     source_url: Option<String>,
@@ -134,6 +136,7 @@ impl fmt::Debug for Source {
         let Self {
             name,
             r#type,
+            group,
             url,
             filter,
             source_url,
@@ -144,6 +147,7 @@ impl fmt::Debug for Source {
         fmt.debug_struct("Source")
             .field("name", name)
             .field("type", r#type)
+            .field("group", group)
             // The default format of `Url` is too verbose for the logs.
             .field("url", &url.as_str())
             .field("filter", filter)
@@ -163,4 +167,23 @@ pub enum Type {
     GeoNetworkQ,
     DorisBfs,
     SmartFinder,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Group {
+    Daily,
+    Weekly,
+}
+
+impl FromStr for Group {
+    type Err = Error;
+
+    fn from_str(val: &str) -> Result<Self, Self::Err> {
+        match val {
+            "daily" => Ok(Self::Daily),
+            "weekly" => Ok(Self::Weekly),
+            val => Err(anyhow!("Invalid group {}", val)),
+        }
+    }
 }

@@ -1,0 +1,23 @@
+[Unit]
+Description=umwelt.info harvester service
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/lib/umwelt-info
+
+[Service]
+User=umwelt-info
+Group=umwelt-info
+Environment=RUST_LOG=info DATA_PATH=/var/lib/umwelt-info SOURCE_GROUP=daily
+
+Type=oneshot
+ExecStart=harvester
+ExecStart=indexer
+
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/umwelt-info
+PrivateDevices=yes
+PrivateTmp=yes
+PrivateUsers=yes
+NoNewPrivileges=yes
+SystemCallFilter=@system-service

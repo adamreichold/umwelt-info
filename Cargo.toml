@@ -46,8 +46,10 @@ assets = [
     ["target/release/harvester", "usr/bin/", "755"],
     ["target/release/indexer", "usr/bin/", "755"],
     ["target/release/server", "usr/bin/", "755"],
-    ["deployment/harvester.service", "etc/systemd/system/", "644"],
-    ["deployment/harvester.timer", "etc/systemd/system/", "644"],
+    ["deployment/harvester-daily.service", "etc/systemd/system/", "644"],
+    ["deployment/harvester-weekly.service", "etc/systemd/system/", "644"],
+    ["deployment/harvester-daily.timer", "etc/systemd/system/", "644"],
+    ["deployment/harvester-weekly.timer", "etc/systemd/system/", "644"],
     ["deployment/indexer.service", "etc/systemd/system/", "644"],
     ["deployment/server.service", "etc/systemd/system/", "644"],
 ]
