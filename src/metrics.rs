@@ -2,7 +2,10 @@ use std::io::{BufReader, Write};
 use std::time::{Duration, SystemTime};
 
 use anyhow::Result;
-use bincode::{deserialize_from, serialize};
+use bincode::{
+    config::standard,
+    serde::{decode_from_std_read, encode_to_vec},
+};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
@@ -18,7 +21,7 @@ pub struct Metrics {
 impl Metrics {
     pub fn read(dir: &Dir) -> Result<Self> {
         let val = if let Ok(file) = dir.open("metrics") {
-            deserialize_from(BufReader::new(file))?
+            decode_from_std_read(&mut BufReader::new(file), standard())?
         } else {
             Default::default()
         };
@@ -27,7 +30,7 @@ impl Metrics {
     }
 
     pub fn write(&self, dir: &Dir) -> Result<()> {
-        let buf = serialize(self)?;
+        let buf = encode_to_vec(self, standard())?;
 
         let mut file = dir.create("metrics.new")?;
         file.write_all(&buf)?;

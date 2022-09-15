@@ -1,7 +1,10 @@
 use std::io::{BufReader, Write};
 
 use anyhow::Result;
-use bincode::config::{DefaultOptions, Options};
+use bincode::{
+    config::standard,
+    serde::{decode_from_std_read, encode_to_vec},
+};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
 use parking_lot::Mutex;
@@ -15,9 +18,10 @@ pub struct Stats {
 impl Stats {
     pub fn read(dir: &Dir) -> Result<Self> {
         let val = if let Ok(file) = dir.open("stats") {
-            DefaultOptions::new()
-                .with_fixint_encoding()
-                .deserialize_from(BufReader::new(file))?
+            decode_from_std_read(
+                &mut BufReader::new(file),
+                standard().with_fixed_int_encoding(),
+            )?
         } else {
             Default::default()
         };
@@ -26,9 +30,7 @@ impl Stats {
     }
 
     pub fn write(this: &Mutex<Self>, dir: &Dir) -> Result<()> {
-        let buf = DefaultOptions::new()
-            .with_fixint_encoding()
-            .serialize(&*this.lock())?;
+        let buf = encode_to_vec(&*this.lock(), standard().with_fixed_int_encoding())?;
 
         let mut file = dir.create("stats.new")?;
         file.write_all(&buf)?;

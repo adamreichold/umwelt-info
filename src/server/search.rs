@@ -55,10 +55,12 @@ pub async fn search(
 
         let dir = dir.open_dir("datasets")?;
 
+        let mut buf = Vec::new();
+
         for doc in docs {
             let (source, id) = doc?;
 
-            let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
+            let dataset = Dataset::read_with(dir.open_dir(&source)?.open(&id)?, &mut buf)?;
 
             page.results.push(SearchResult {
                 source,

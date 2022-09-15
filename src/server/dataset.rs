@@ -18,29 +18,18 @@ pub async fn dataset(
     Extension(dir): Extension<&'static Dir>,
     Extension(stats): Extension<&'static Mutex<Stats>>,
 ) -> Result<Response, ServerError> {
-    fn inner(
-        source: String,
-        id: String,
-        dir: &Dir,
-        stats: &Mutex<Stats>,
-    ) -> Result<DatasetPage, ServerError> {
-        let dir = dir.open_dir("datasets")?;
+    let dir = dir.open_dir("datasets")?;
 
-        let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?)?;
+    let dataset = Dataset::read(dir.open_dir(&source)?.open(&id)?).await?;
 
-        let accesses = stats.lock().record_access(&source, &id);
+    let accesses = stats.lock().record_access(&source, &id);
 
-        let page = DatasetPage {
-            source,
-            id,
-            dataset,
-            accesses,
-        };
-
-        Ok(page)
-    }
-
-    let page = inner(source, id, dir, stats)?;
+    let page = DatasetPage {
+        source,
+        id,
+        dataset,
+        accesses,
+    };
 
     Ok(accept.into_repsonse(page))
 }
