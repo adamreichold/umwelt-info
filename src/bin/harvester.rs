@@ -10,8 +10,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use umwelt_info::{
     data_path_from_env,
     harvester::{
-        ckan, client::Client, csw, doris_bfs, geo_network_q, smart_finder, wasser_de, Config,
-        Source, Type,
+        ckan, client::Client, csw, doris_bfs, geo_network_q, manual, smart_finder, wasser_de,
+        Config, Source, Type,
     },
     metrics::Metrics,
 };
@@ -97,6 +97,7 @@ async fn harvest(
     let start = SystemTime::now();
 
     let res = match source.r#type {
+        Type::Manual => manual::harvest(&dir, &source).await,
         Type::Ckan => ckan::harvest(&dir, client, &source).await,
         Type::Csw => csw::harvest(&dir, client, &source).await,
         Type::WasserDe => wasser_de::harvest(&dir, client, &source).await,

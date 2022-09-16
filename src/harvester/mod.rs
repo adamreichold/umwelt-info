@@ -3,6 +3,7 @@ pub mod client;
 pub mod csw;
 pub mod doris_bfs;
 pub mod geo_network_q;
+pub mod manual;
 pub mod smart_finder;
 pub mod wasser_de;
 
@@ -157,6 +158,7 @@ impl fmt::Debug for Source {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Type {
+    Manual,
     Ckan,
     Csw,
     WasserDe,
