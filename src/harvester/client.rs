@@ -32,8 +32,9 @@ impl Client {
 
         if !replay {
             let _ = dir.remove_dir_all("responses");
-            dir.create_dir("responses")?;
         }
+
+        dir.create_dir_all("responses")?;
 
         let dir = Arc::new(dir.open_dir("responses")?);
 

@@ -50,5 +50,6 @@ assets = [
     ["deployment/harvester.timer", "etc/systemd/system/", "644"],
     ["deployment/indexer.service", "etc/systemd/system/", "644"],
     ["deployment/server.service", "etc/systemd/system/", "644"],
+    ["deployment/harvester.toml", "usr/share/umwelt-info/harvester.toml", "644"],
     ["deployment/manual_datasets.toml", "usr/share/umwelt-info/manual_datasets.toml", "644"],
 ]

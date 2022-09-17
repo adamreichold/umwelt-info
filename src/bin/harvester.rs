@@ -23,14 +23,14 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let data_path = data_path_from_env();
-
-    let dir = Dir::open_ambient_dir(&data_path, ambient_authority())?;
-
-    let config = Config::read(&dir)?;
+    let config = Config::read()?;
 
     let count = config.sources.len();
     tracing::info!("Harvesting {} sources", count);
+
+    let data_path = data_path_from_env();
+
+    let dir = Dir::open_ambient_dir(&data_path, ambient_authority())?;
 
     let metrics = Arc::new(Mutex::new(Metrics::default()));
 

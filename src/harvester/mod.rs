@@ -7,9 +7,10 @@ pub mod manual;
 pub mod smart_finder;
 pub mod wasser_de;
 
+use std::env::var_os;
 use std::fmt;
+use std::fs::read_to_string;
 use std::future::Future;
-use std::io::Read;
 
 use anyhow::{ensure, Result};
 use cap_std::fs::{Dir, OpenOptions as FsOpenOptions};
@@ -78,12 +79,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read(dir: &Dir) -> Result<Self> {
-        let mut file = dir.open("harvester.toml")?;
+    pub fn read() -> Result<Self> {
+        let path = var_os("CONFIG_PATH").expect("Environment variable CONFIG_PATH not set");
 
-        let mut buf = String::new();
-        file.read_to_string(&mut buf)?;
-        let val = from_str::<Self>(&buf)?;
+        let val = from_str::<Self>(&read_to_string(path)?)?;
 
         {
             let mut source_names = HashSet::new();
