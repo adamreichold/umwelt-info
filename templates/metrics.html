@@ -7,99 +7,107 @@
 
   <body>
 
-    <h3>Accesses</h3>
+    <details>
+      <summary>Accesses</summary>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Source name</th><th>Accesses</th>
-        </tr>
-      </thead>
+      <table>
+        <thead>
+          <tr>
+            <th>Source name</th><th>Accesses</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {% for (source_name, accesses) in accesses %}
+        <tbody>
+          {% for (source_name, accesses) in accesses %}
 
-        <tr>
-          <td>{{ source_name }}</td><td>{{ accesses }}</td>
-        </tr>
+          <tr>
+            <td>{{ source_name }}</td><td>{{ accesses }}</td>
+          </tr>
 
-        {% endfor %}
+          {% endfor %}
 
-        <tr>
-          <td><b>Sum</b></td><td><b>{{ sum_accesses }}</b></td>
-        </tr>
+          <tr>
+            <td><b>Sum</b></td><td><b>{{ sum_accesses }}</b></td>
+          </tr>
 
-      </tbody>
-    </table>
-
-
-    <h3>Harvests</h3>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Source name</th><th>Start</th><th>Duration</th><th>Count</th><th>Tranmmitted</th><th>Errors</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for (source_name, harvest) in harvests %}
-
-        <tr>
-          <td>{{ source_name }}</td><td>{{ harvest.start|system_time }}</td><td>{{ harvest.duration|duration }}</td><td>{{ harvest.count }}</td><td>{{ harvest.transmitted }}</td><td>{{ harvest.failed }}</td>
-        </tr>
-
-        {% endfor %}
-
-        <tr>
-          <td><b>Sum</b></td><td></td><td></td><td><b>{{ sum_count }}</b></td><td><b>{{ sum_transmitted }}</b></td><td><b>{{ sum_failed }}</b></td>
-        </tr>
-
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </details>
 
 
-    <h3>Licenses</h3>
+    <details>
+      <summary>Harvests</summary>
 
-    <table>
-      <thead>
-        <th>License</th><th>Count</th>
-      </thead>
+      <table>
+        <thead>
+          <tr>
+            <th>Source name</th><th>Start</th><th>Duration</th><th>Count</th><th>Tranmmitted</th><th>Errors</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {% for (license, count) in licenses %}
+        <tbody>
+          {% for (source_name, harvest) in harvests %}
 
-        <tr>
-          <td>{% if license.is_other() %}<i>{{ license }}<i>{% else %}{{ license }}{% endif %}</td><td>{{ count }}</td>
-        </tr>
+          <tr>
+            <td>{{ source_name }}</td><td>{{ harvest.start|system_time }}</td><td>{{ harvest.duration|duration }}</td><td>{{ harvest.count }}</td><td>{{ harvest.transmitted }}</td><td>{{ harvest.failed }}</td>
+          </tr>
 
-        {% endfor %}
+          {% endfor %}
 
-        <tr>
-          <td><b>Other</b></td><td><b>{{ sum_other }}</b></td>
-        </tr>
+          <tr>
+            <td><b>Sum</b></td><td></td><td></td><td><b>{{ sum_count }}</b></td><td><b>{{ sum_transmitted }}</b></td><td><b>{{ sum_failed }}</b></td>
+          </tr>
 
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </details>
 
-    <h3>Licenses by source</h3>
 
-    <table>
-      <thead>
-        <th>Source</th><th>Unknown</th><th>Other</th>
-      </thead>
+    <details>
+      <summary>Licenses</summary>
 
-      <tbody>
-        {% for (source, unknown, other) in licenses_by_source %}
+      <table>
+        <thead>
+          <th>License</th><th>Count</th>
+        </thead>
 
-        <tr>
-          <td>{{ source }}</td><td>{{ unknown|percentage }}</td><td>{{ other|percentage }}</td>
-        </tr>
+        <tbody>
+          {% for (license, count) in licenses %}
 
-        {% endfor %}
+          <tr>
+            <td>{% if license.is_other() %}<i>{{ license }}<i>{% else %}{{ license }}{% endif %}</td><td>{{ count }}</td>
+          </tr>
 
-      </tbody>
-    </table>
+          {% endfor %}
+
+          <tr>
+            <td><b>Other</b></td><td><b>{{ sum_other }}</b></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </details>
+
+    <details>
+      <summary>Licenses by source</summary>
+
+      <table>
+        <thead>
+          <th>Source</th><th>Unknown</th><th>Other</th>
+        </thead>
+
+        <tbody>
+          {% for (source, unknown, other) in licenses_by_source %}
+
+          <tr>
+            <td>{{ source }}</td><td>{{ unknown|percentage }}</td><td>{{ other|percentage }}</td>
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </details>
 
   </body>
 </html>
