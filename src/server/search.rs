@@ -94,7 +94,7 @@ pub async fn search(
     spawn_blocking(move || inner(params, accept, searcher, dir)).await?
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 pub struct SearchParams {
     #[serde(default = "default_query")]
     query: String,
@@ -136,6 +136,7 @@ fn default_results_per_page() -> usize {
 #[derive(Template, Serialize)]
 #[template(path = "search.html")]
 struct SearchPage<'a> {
+    #[serde(skip_serializing)]
     params: SearchParams,
     count: usize,
     pages: usize,

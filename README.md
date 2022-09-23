@@ -16,7 +16,7 @@ The system is implemented as three separate programs that access a common file s
 
 The code is organised as a single library with three entry points for the above mentioned programs. A fourth binary named `xtask` is used automate the development workflow.
 
-The CI pipelines checks formatting via Rustfmt, ensure a warning-free build using Clippy, runs the unit and integration tests and builds and collects optimized binaries.
+The CI pipelines checks formatting via Rustfmt, ensures a warning-free build using Clippy, runs the unit and integration tests and builds and collects optimized binaries.
 
 The system is deployed using a set of sandboxed [systemd units](https://systemd.io/), both for periodically running the harvester and indexer as well as continuously running the server.
 
@@ -67,4 +67,4 @@ under which its response is stored on disk. Once development has reached a state
 
 ### Content negotiation
 
-The HTTP routes `/search` and `/dataset` support content negotiation insofar they yield either rendered HTML pages or the underlying JSON data depending on the `Accept` header transmitted by the HTTP client.
+The HTTP routes `/search` and `/dataset` support content negotiation insofar they yield either rendered HTML pages or the underlying JSON data depending on the `Accept` header transmitted by the HTTP client. An [OpenAPI-compatible](https://swagger.io/specification/) specification is served at `/openapi.yaml` and can be explored using [Swagger UI](https://github.com/swagger-api/swagger-ui) served at `/swagger-ui/`.

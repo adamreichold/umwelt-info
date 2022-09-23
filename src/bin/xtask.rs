@@ -69,6 +69,7 @@ fn server() -> Result<()> {
         ["run", "--bin", "server"],
         [
             ("DATA_PATH", "data"),
+            ("ASSETS_PATH", "assets"),
             ("BIND_ADDR", "127.0.0.1:8081"),
             ("REQUEST_LIMIT", "32"),
             ("RUST_LOG", "info,umwelt_info=debug,server=debug"),

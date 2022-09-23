@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: umwelt.info metadata index API
+  version: 0.1.0
+  license: AGPL-3.0
+  contact:
+    name: umwelt.info
+    email: umwelt.info@uba.de
+
+paths:
+  /search:
+    get:
+      summary: Search for multiple datasets
+      parameters:
+      - name: query
+        in: query
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: results_per_page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    minimum: 0
+                  pages:
+                    type: integer
+                    minimum: 0
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source:
+                          type: string
+                        id:
+                          type: string
+                        dataset:
+                          $ref: "#/components/schemas/dataset"
+
+  /dataset/{source}/{id}:
+    get:
+      summary: Access a single dataset
+      parameters:
+      - name: source
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dataset:
+                    $ref: "#/components/schemas/dataset"
+                  accesses:
+                    type: integer
+                    minimum: 0
+
+components:
+  schemas:
+    dataset:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string

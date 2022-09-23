@@ -48,7 +48,9 @@ pub async fn dataset(
 #[derive(Template, Serialize)]
 #[template(path = "dataset.html")]
 struct DatasetPage {
+    #[serde(skip_serializing)]
     source: String,
+    #[serde(skip_serializing)]
     id: String,
     dataset: Dataset,
     accesses: u64,
