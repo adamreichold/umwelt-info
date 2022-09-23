@@ -26,6 +26,12 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         let sum_accesses = accesses.iter().map(|(_, accesses)| accesses).sum();
 
+        let mut terms = stats.terms.into_iter().collect::<Vec<_>>();
+
+        terms.sort_unstable_by_key(|(_, queries)| Reverse(*queries));
+
+        let sum_terms = terms.iter().map(|(_, queries)| queries).sum();
+
         let metrics = Metrics::read(dir)?;
 
         let mut harvests = metrics.harvests.into_iter().collect::<Vec<_>>();
@@ -112,6 +118,8 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
         let page = MetricsPage {
             accesses,
             sum_accesses,
+            terms,
+            sum_terms,
             harvests,
             sum_count,
             sum_transmitted,
@@ -136,6 +144,8 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 struct MetricsPage {
     accesses: Vec<(String, u64)>,
     sum_accesses: u64,
+    terms: Vec<(String, u64)>,
+    sum_terms: u64,
     harvests: Vec<(String, HarvestMetrics)>,
     sum_count: usize,
     sum_transmitted: usize,

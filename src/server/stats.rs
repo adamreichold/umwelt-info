@@ -1,6 +1,6 @@
 use std::io::{BufReader, Write};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bincode::config::{DefaultOptions, Options};
 use cap_std::fs::Dir;
 use hashbrown::HashMap;
@@ -10,14 +10,33 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct Stats {
     pub accesses: HashMap<String, HashMap<String, u64>>,
+    pub terms: HashMap<String, u64>,
+}
+
+#[derive(Deserialize)]
+struct OldStats {
+    pub accesses: HashMap<String, HashMap<String, u64>>,
 }
 
 impl Stats {
     pub fn read(dir: &Dir) -> Result<Self> {
-        let val = if let Ok(file) = dir.open("stats") {
-            DefaultOptions::new()
-                .with_fixint_encoding()
-                .deserialize_from(BufReader::new(file))?
+        let val = if let Ok(mut file) = dir.open("stats") {
+            let res = options().deserialize_from::<_, Stats>(BufReader::new(&mut file));
+
+            match res {
+                Ok(val) => val,
+                Err(err) => {
+                    let old_val = options()
+                        .deserialize_from::<_, OldStats>(BufReader::new(&mut file))
+                        .map_err(|_old_err| err)
+                        .context("Failed to deserialize stats")?;
+
+                    Self {
+                        accesses: old_val.accesses,
+                        terms: HashMap::new(),
+                    }
+                }
+            }
         } else {
             Default::default()
         };
@@ -26,9 +45,7 @@ impl Stats {
     }
 
     pub fn write(this: &Mutex<Self>, dir: &Dir) -> Result<()> {
-        let buf = DefaultOptions::new()
-            .with_fixint_encoding()
-            .serialize(&*this.lock())?;
+        let buf = options().serialize(&*this.lock())?;
 
         let mut file = dir.create("stats.new")?;
         file.write_all(&buf)?;
@@ -49,4 +66,17 @@ impl Stats {
 
         *accesses
     }
+
+    pub fn record_terms<'a, T>(&mut self, terms: T)
+    where
+        T: Iterator<Item = &'a String>,
+    {
+        terms.for_each(|term| {
+            *self.terms.entry_ref(term).or_default() += 1;
+        });
+    }
+}
+
+fn options() -> impl Options {
+    DefaultOptions::new().with_fixint_encoding()
 }
