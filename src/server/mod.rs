@@ -1,6 +1,7 @@
 pub mod dataset;
 pub mod filters;
 pub mod metrics;
+pub mod prometheus;
 pub mod search;
 pub mod stats;
 

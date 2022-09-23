@@ -2,7 +2,9 @@ use std::env::var;
 use std::net::SocketAddr;
 
 use anyhow::Error;
-use axum::{response::Redirect, routing::get, Router, Server};
+use axum::{
+    middleware::from_fn as middleware_from_fn, response::Redirect, routing::get, Router, Server,
+};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
 use tokio::{
@@ -18,7 +20,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use umwelt_info::{
     data_path_from_env,
     index::Searcher,
-    server::{dataset::dataset, metrics::metrics, search::search, stats::Stats, State},
+    server::{
+        dataset::dataset,
+        metrics::metrics,
+        prometheus::{install_recorder, measure_routes},
+        search::search,
+        stats::Stats,
+        State,
+    },
 };
 
 #[tokio::main]
@@ -54,11 +63,15 @@ async fn main() -> Result<(), Error> {
 
     spawn(write_stats(state));
 
+    let render_measurements = install_recorder()?;
+
     let router = Router::with_state(state)
-        .route("/", get(|| async { Redirect::permanent("/search") }))
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
-        .route("/metrics", get(metrics));
+        .route("/metrics", get(metrics))
+        .route_layer(middleware_from_fn(measure_routes))
+        .route("/prometheus", get(render_measurements))
+        .route("/", get(|| async { Redirect::permanent("/search") }));
 
     let make_service = Shared::new(
         ServiceBuilder::new()
