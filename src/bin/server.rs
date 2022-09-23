@@ -5,6 +5,7 @@ use anyhow::Error;
 use axum::{extract::Extension, response::Redirect, routing::get, Router, Server};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
+use reqwest::Client;
 use tokio::{
     task::{spawn, spawn_blocking},
     time::{interval_at, Duration, Instant, MissedTickBehavior},
@@ -19,6 +20,7 @@ use umwelt_info::{
     data_path_from_env,
     index::Searcher,
     server::{dataset::dataset, metrics::metrics, search::search, stats::Stats},
+    umthes,
 };
 
 #[tokio::main]
@@ -42,6 +44,15 @@ async fn main() -> Result<(), Error> {
 
     let searcher = &*Box::leak(Box::new(Searcher::open(&data_path)?));
 
+    let client = &*Box::leak(Box::new(
+        Client::builder()
+            .user_agent("umwelt.info server")
+            .timeout(Duration::from_secs(1))
+            .build()?,
+    ));
+
+    let similar_terms_cache = &*Box::leak(Box::new(umthes::similar_terms_cache()));
+
     let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
         data_path,
         ambient_authority(),
@@ -57,6 +68,8 @@ async fn main() -> Result<(), Error> {
         .route("/dataset/:source/:id", get(dataset))
         .route("/metrics", get(metrics))
         .layer(Extension(searcher))
+        .layer(Extension(client))
+        .layer(Extension(similar_terms_cache))
         .layer(Extension(dir))
         .layer(Extension(stats));
 

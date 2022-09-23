@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
@@ -85,8 +86,14 @@ impl Searcher {
         offset: usize,
     ) -> Result<Results<impl Iterator<Item = Result<(String, String)>> + '_>> {
         let query = self.parser.parse_query(query)?;
-        let searcher = self.reader.searcher();
-        let accesses = self.fields.accesses;
+
+        let mut terms = BTreeMap::new();
+        query.query_terms(&mut terms);
+
+        let terms = terms
+            .into_iter()
+            .filter_map(|(term, _)| term.as_str().map(|term| term.to_owned()))
+            .collect();
 
         let provenances_query = TermQuery::new(
             Term::from_facet(self.fields.provenance, provenances_root),
@@ -109,6 +116,9 @@ impl Searcher {
 
         let mut licenses = FacetCollector::for_field(self.fields.license);
         licenses.add_facet(licenses_root.clone());
+
+        let searcher = self.reader.searcher();
+        let accesses = self.fields.accesses;
 
         let (count, docs, provenances, licenses) = searcher.search(
             &query,
@@ -152,6 +162,7 @@ impl Searcher {
             iter,
             provenances,
             licenses,
+            terms,
         })
     }
 }
@@ -161,6 +172,7 @@ pub struct Results<I> {
     pub iter: I,
     pub provenances: FacetCounts,
     pub licenses: FacetCounts,
+    pub terms: Vec<String>,
 }
 
 pub struct Indexer {
