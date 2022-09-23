@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     let stats = Stats::read(&dir)?;
 
-    let mut metrics = Mutex::new(Metrics::read(&dir)?);
+    let mut metrics = Mutex::new(Metrics::read(&dir));
 
     metrics.get_mut().clear_datasets();
 
