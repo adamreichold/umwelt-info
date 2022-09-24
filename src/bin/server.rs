@@ -2,7 +2,9 @@ use std::env::var;
 use std::net::SocketAddr;
 
 use anyhow::Error;
-use axum::{extract::Extension, response::Redirect, routing::get, Router, Server};
+use axum::{
+    middleware::from_fn as middleware_from_fn, response::Redirect, routing::get, Router, Server,
+};
 use cap_std::{ambient_authority, fs::Dir};
 use parking_lot::Mutex;
 use tokio::{
@@ -18,7 +20,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use umwelt_info::{
     data_path_from_env,
     index::Searcher,
-    server::{dataset::dataset, metrics::metrics, search::search, stats::Stats},
+    server::{
+        dataset::dataset,
+        metrics::metrics,
+        prometheus::{install_recorder, measure_routes},
+        search::search,
+        stats::Stats,
+        State,
+    },
 };
 
 #[tokio::main]
@@ -40,25 +49,29 @@ async fn main() -> Result<(), Error> {
         .parse::<usize>()
         .expect("Environment variable REQUEST_LIMIT invalid");
 
-    let searcher = &*Box::leak(Box::new(Searcher::open(&data_path)?));
+    let searcher = Searcher::open(&data_path)?;
 
-    let dir = &*Box::leak(Box::new(Dir::open_ambient_dir(
-        data_path,
-        ambient_authority(),
-    )?));
+    let dir = Dir::open_ambient_dir(data_path, ambient_authority())?;
 
-    let stats = &*Box::leak(Box::new(Mutex::new(Stats::read(dir)?)));
+    let stats = Mutex::new(Stats::read(&dir)?);
 
-    spawn(write_stats(dir, stats));
+    let state = &*Box::leak(Box::new(State {
+        searcher,
+        dir,
+        stats,
+    }));
 
-    let router = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/search") }))
+    spawn(write_stats(state));
+
+    let render_measurements = install_recorder()?;
+
+    let router = Router::with_state(state)
         .route("/search", get(search))
         .route("/dataset/:source/:id", get(dataset))
         .route("/metrics", get(metrics))
-        .layer(Extension(searcher))
-        .layer(Extension(dir))
-        .layer(Extension(stats));
+        .route_layer(middleware_from_fn(measure_routes))
+        .route("/prometheus", get(render_measurements))
+        .route("/", get(|| async { Redirect::permanent("/search") }));
 
     let make_service = Shared::new(
         ServiceBuilder::new()
@@ -77,7 +90,7 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn write_stats(dir: &'static Dir, stats: &'static Mutex<Stats>) {
+async fn write_stats(state: &'static State) {
     let mut interval = interval_at(
         Instant::now() + Duration::from_secs(60),
         Duration::from_secs(60),
@@ -88,7 +101,7 @@ async fn write_stats(dir: &'static Dir, stats: &'static Mutex<Stats>) {
         interval.tick().await;
 
         spawn_blocking(move || {
-            if let Err(err) = Stats::write(stats, dir) {
+            if let Err(err) = Stats::write(&state.stats, &state.dir) {
                 tracing::warn!("Failed to write stats: {:#}", err);
             }
         })

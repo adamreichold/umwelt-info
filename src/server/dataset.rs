@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::{
-    extract::{Extension, Path},
+    extract::{Path, State},
     response::Response,
 };
 use cap_std::fs::Dir;
@@ -15,8 +15,8 @@ use crate::{
 pub async fn dataset(
     Path((source, id)): Path<(String, String)>,
     accept: Accept,
-    Extension(dir): Extension<&'static Dir>,
-    Extension(stats): Extension<&'static Mutex<Stats>>,
+    State(dir): State<&'static Dir>,
+    State(stats): State<&'static Mutex<Stats>>,
 ) -> Result<Response, ServerError> {
     fn inner(
         source: String,

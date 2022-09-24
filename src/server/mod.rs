@@ -1,6 +1,7 @@
 pub mod dataset;
 pub mod filters;
 pub mod metrics;
+pub mod prometheus;
 pub mod search;
 pub mod stats;
 
@@ -10,11 +11,39 @@ use anyhow::Error;
 use askama::Template;
 use axum::{
     async_trait,
-    extract::{FromRequest, RequestParts},
-    http::{header::ACCEPT, StatusCode},
+    extract::{FromRef, FromRequestParts},
+    http::{header::ACCEPT, request::Parts, StatusCode},
     response::{Html, IntoResponse, Json, Response},
 };
+use cap_std::fs::Dir;
+use parking_lot::Mutex;
 use serde::Serialize;
+
+use crate::{index::Searcher, server::stats::Stats};
+
+pub struct State {
+    pub searcher: Searcher,
+    pub dir: Dir,
+    pub stats: Mutex<Stats>,
+}
+
+impl FromRef<&'static State> for &'static Searcher {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.searcher
+    }
+}
+
+impl FromRef<&'static State> for &'static Dir {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.dir
+    }
+}
+
+impl FromRef<&'static State> for &'static Mutex<Stats> {
+    fn from_ref(state: &&'static State) -> Self {
+        &state.stats
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Accept {
@@ -36,15 +65,15 @@ impl Accept {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for Accept
+impl<S> FromRequestParts<S> for Accept
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = Infallible;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        if let Some(accept) = req
-            .headers()
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if let Some(accept) = parts
+            .headers
             .get(ACCEPT)
             .and_then(|header| header.to_str().ok())
         {
