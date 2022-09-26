@@ -7,6 +7,7 @@ use axum::{
 };
 use cap_std::fs::Dir;
 use hashbrown::HashSet;
+use parking_lot::Mutex;
 use reqwest::Client;
 use serde::{
     de::{Deserializer, Error},
@@ -18,7 +19,7 @@ use tokio::task::spawn_blocking;
 use crate::{
     dataset::Dataset,
     index::Searcher,
-    server::{Accept, ServerError},
+    server::{stats::Stats, Accept, ServerError},
     umthes,
 };
 
@@ -29,6 +30,7 @@ pub async fn search(
     Extension(client): Extension<&'static Client>,
     Extension(similar_terms_cache): Extension<&'static umthes::SimilarTermsCache>,
     Extension(dir): Extension<&'static Dir>,
+    Extension(stats): Extension<&'static Mutex<Stats>>,
 ) -> Result<Response, ServerError> {
     fn inner(
         params: SearchParams,
@@ -103,6 +105,8 @@ pub async fn search(
 
     page.related_terms =
         umthes::fetch_similar_terms(client, similar_terms_cache, page.terms.iter()).await;
+
+    stats.lock().record_terms(page.terms.iter());
 
     Ok(accept.into_repsonse(page))
 }
