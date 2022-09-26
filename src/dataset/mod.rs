@@ -38,15 +38,20 @@ pub struct Dataset {
 /// Previously deployed version of the above [`Dataset`] type.
 ///
 /// It will be updated when a new harvester has been deployed. Feature branches should only modify [`Dataset`] and the mapping between both types defined by [`Dataset::read`].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 struct OldDataset {
     pub title: String,
-    pub description: String,
+    pub description: Option<String>,
+    pub comment: Option<String>,
+    pub provenance: DefaultAtom,
     pub license: License,
-    pub tags: Vec<String>,
-    pub source_url: String,
-    pub resources: Vec<Resource>,
+    pub contacts: Vec<Contact>,
+    pub tags: Vec<Tag>,
+    pub region: Option<String>,
     pub issued: Option<Date>,
+    pub last_checked: Option<Date>,
+    pub source_url: String,
+    pub resources: SmallVec<[Resource; 4]>,
 }
 
 impl Dataset {
@@ -63,17 +68,17 @@ impl Dataset {
 
                 Self {
                     title: old_val.title,
-                    description: Some(old_val.description),
-                    comment: None,
-                    provenance: DefaultAtom::from("/"),
+                    description: old_val.description,
+                    comment: old_val.comment,
+                    provenance: old_val.provenance,
                     license: old_val.license,
-                    contacts: Vec::new(),
-                    tags: old_val.tags.into_iter().map(Into::into).collect(),
-                    region: None,
+                    contacts: old_val.contacts,
+                    tags: old_val.tags,
+                    region: old_val.region,
                     issued: old_val.issued,
-                    last_checked: None,
+                    last_checked: old_val.last_checked,
                     source_url: old_val.source_url,
-                    resources: old_val.resources.into(),
+                    resources: old_val.resources,
                 }
             }
         };

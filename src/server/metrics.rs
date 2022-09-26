@@ -26,7 +26,7 @@ pub async fn metrics(Extension(dir): Extension<&'static Dir>) -> Result<Html<Str
 
         let sum_accesses = accesses.iter().map(|(_, accesses)| accesses).sum();
 
-        let metrics = Metrics::read(dir)?;
+        let metrics = Metrics::read(dir);
 
         let mut harvests = metrics.harvests.into_iter().collect::<Vec<_>>();
 

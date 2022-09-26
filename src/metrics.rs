@@ -17,14 +17,21 @@ pub struct Metrics {
 }
 
 impl Metrics {
-    pub fn read(dir: &Dir) -> Result<Self> {
-        let val = if let Ok(file) = dir.open("metrics") {
-            deserialize_from(BufReader::new(file))?
-        } else {
-            Default::default()
-        };
+    pub fn read(dir: &Dir) -> Self {
+        fn inner(dir: &Dir) -> Result<Metrics> {
+            let file = dir.open("metrics")?;
+            let val = deserialize_from(BufReader::new(file))?;
+            Ok(val)
+        }
 
-        Ok(val)
+        match inner(dir) {
+            Ok(val) => val,
+            Err(err) => {
+                tracing::warn!("Failed to read metrics: {:#}", err);
+
+                Default::default()
+            }
+        }
     }
 
     pub fn write(&self, dir: &Dir) -> Result<()> {
