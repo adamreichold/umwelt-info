@@ -18,7 +18,12 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use umwelt_info::{
     data_path_from_env,
     index::Searcher,
-    server::{dataset::dataset, metrics::metrics, search::search, stats::Stats},
+    server::{
+        dataset::dataset,
+        metrics::metrics,
+        search::{completions, search},
+        stats::Stats,
+    },
 };
 
 #[tokio::main]
@@ -54,6 +59,7 @@ async fn main() -> Result<(), Error> {
     let router = Router::new()
         .route("/", get(|| async { Redirect::permanent("/search") }))
         .route("/search", get(search))
+        .route("/completions", get(completions))
         .route("/dataset/:source/:id", get(dataset))
         .route("/metrics", get(metrics))
         .layer(Extension(searcher))

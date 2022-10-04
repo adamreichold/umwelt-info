@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use askama::Template;
 use axum::{
     extract::{Extension, Query},
-    response::Response,
+    response::{Json, Response},
 };
 use cap_std::fs::Dir;
+use hashbrown::HashSet;
 use serde::{
     de::{Deserializer, Error},
     Deserialize, Serialize,
@@ -181,4 +182,25 @@ struct SearchResult {
     source: String,
     id: String,
     dataset: Dataset,
+}
+
+#[derive(Deserialize)]
+pub struct CompletionsParams {
+    term: String,
+}
+
+pub async fn completions(
+    Query(params): Query<CompletionsParams>,
+    Extension(searcher): Extension<&'static Searcher>,
+) -> Result<Json<HashSet<String>>, ServerError> {
+    fn inner(
+        params: CompletionsParams,
+        searcher: &Searcher,
+    ) -> Result<Json<HashSet<String>>, ServerError> {
+        let completions = searcher.completions(&params.term)?;
+
+        Ok(Json(completions))
+    }
+
+    spawn_blocking(|| inner(params, searcher)).await?
 }

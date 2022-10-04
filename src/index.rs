@@ -1,7 +1,10 @@
 use std::fs::create_dir_all;
+use std::mem::take;
 use std::path::Path;
+use std::str::from_utf8 as str_from_utf8;
 
 use anyhow::Result;
+use hashbrown::HashSet;
 use tantivy::{
     collector::{Count, FacetCollector, FacetCounts, TopDocs},
     directory::MmapDirectory,
@@ -153,6 +156,40 @@ impl Searcher {
             provenances,
             licenses,
         })
+    }
+
+    pub fn completions(&self, term: &str) -> Result<HashSet<String>> {
+        let searcher = self.reader.searcher();
+
+        let de_stem = searcher.index().tokenizers().get("de_stem").unwrap();
+
+        let mut tokens = de_stem.token_stream(term);
+        let mut token = String::new();
+
+        while tokens.advance() {
+            token = take(&mut tokens.token_mut().text);
+        }
+
+        if token.is_empty() {
+            return Ok(HashSet::new());
+        }
+
+        let lower = &format!("{}a", token);
+        let upper = &format!("{}z", token);
+
+        let mut completions = HashSet::new();
+
+        for reader in searcher.segment_readers() {
+            let reader = reader.inverted_index(self.fields.title)?;
+
+            let mut terms = reader.terms().range().ge(lower).lt(upper).into_stream()?;
+
+            while let Some((term, _info)) = terms.next() {
+                completions.get_or_insert_owned(str_from_utf8(term)?);
+            }
+        }
+
+        Ok(completions)
     }
 }
 
