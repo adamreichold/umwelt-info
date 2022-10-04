@@ -11,6 +11,7 @@ fn main() -> Result<()> {
         Some("harvester") => harvester(),
         Some("indexer") => indexer(),
         Some("server") => server(),
+        Some("geonames") => geonames(),
         Some(name) => Err(anyhow!("Unknown task {}", name)),
     }
 }
@@ -72,6 +73,19 @@ fn server() -> Result<()> {
             ("BIND_ADDR", "127.0.0.1:8081"),
             ("REQUEST_LIMIT", "32"),
             ("RUST_LOG", "info,umwelt_info=debug,server=debug"),
+        ],
+    )?;
+
+    Ok(())
+}
+
+fn geonames() -> Result<()> {
+    cargo(
+        "GeoNames",
+        ["run", "--bin", "geonames", "--release"],
+        [
+            ("DATA_PATH", "data"),
+            ("RUST_LOG", "info,umwelt_info=debug,geonames=debug"),
         ],
     )?;
 

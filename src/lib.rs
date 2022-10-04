@@ -1,4 +1,5 @@
 pub mod dataset;
+pub mod geonames;
 pub mod harvester;
 pub mod index;
 pub mod metrics;

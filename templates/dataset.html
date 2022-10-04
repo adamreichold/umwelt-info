@@ -15,7 +15,11 @@
 
     <h3>Tags: {{ dataset.tags|join(", ") }}</h3>
 
-    {% if let Some(region) = dataset.region %} <p>Region: {{ region }}</p> {% endif %}
+    {% if let Some(region) = dataset.region %}
+
+    <p>Region: {% if let Some(region_url) = region.url() %} <a href="{{ region_url }}">{{ region }}</a> {% else %} {{ region }} {% endif %}</p>
+
+    {% endif %}
 
     <p>License: {% if let Some(license_url) = dataset.license.url() %} <a href="{{ license_url }}">{{ dataset.license }}</a> {% else %} {{ dataset.license }} {% endif %}</p>
 
