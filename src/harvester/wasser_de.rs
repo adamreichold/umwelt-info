@@ -12,6 +12,7 @@
 //! | LICENSE_NAME_LANG         |                    |                                                              |
 //! | RICHTLINIE_IDS            | tags               |                                                              |
 //! | URL                       | resource           |                                                              |
+//! | CONTENTTYPE               | resource.type      | Mime-type of the linked ressource, reduced to category       |
 //! | JAHR_VEROEFFENTLICHUNG    | issued             | http://purl.org/dc/terms/issued                              |
 //! | KOMMENTAR                 | comment            |                                                              |
 //! | LAST_CHECKED              | last_checked       | Last time the Wasser-DE staff checked this document          |
@@ -125,7 +126,10 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         issued,
         last_checked,
         source_url: source.url.clone().into(),
-        resources: smallvec![Resource::unknown(document.url)],
+        resources: smallvec![Resource {
+            r#type: document.content_type.as_str().into(),
+            url: document.url
+        }],
     };
 
     write_dataset(dir, &document.id.to_string(), dataset).await
@@ -194,6 +198,8 @@ struct Document {
     contact_name_rl4: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL4")]
     contact_email_rl4: Option<String>,
+    #[serde(rename = "CONTENTTYPE")]
+    content_type: String,
 }
 
 impl Document {
