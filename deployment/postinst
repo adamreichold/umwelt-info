@@ -4,7 +4,7 @@ USER=umwelt-info
 DATA_PATH=/var/lib/umwelt-info
 
 if [ ! -e $DATA_PATH ]; then
-  useradd --home-dir $DATA_PATH --create-home $USER
+  useradd --home-dir $DATA_PATH --create-home --shell /usr/sbin/nologin $USER
 else
   mv $DATA_PATH/index $DATA_PATH/index.old
 fi
