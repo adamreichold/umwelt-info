@@ -19,6 +19,8 @@
 //! | REGION_ID                 |                    |                                                              |
 //! | ANSPRECHPARTNER_NAME      | contact_names      |                                                              |
 //! | ANSPRECHPARTNER_EMAIL     | contact_emails     |                                                              |
+//! | AP_NAME                   | contact_names      |                                                              |
+//! | AP_EMAIL                  | contact_emails     |                                                              |
 //! | ANSPRECHPARTNER_NAME_RL1  | contact_names      |                                                              |
 //! | ANSPRECHPARTNER_EMAIL_RL1 | contact_emails     |                                                              |
 //! | ANSPRECHPARTNER_NAME_RL2  | contact_names      |                                                              |
@@ -105,6 +107,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
     };
 
     push_contact(document.contact_name, document.contact_email);
+    push_contact(document.contact_name_ap, document.contact_email_ap);
     push_contact(document.contact_name_rl1, document.contact_email_rl1);
     push_contact(document.contact_name_rl2, document.contact_email_rl2);
     push_contact(document.contact_name_rl3, document.contact_email_rl3);
@@ -171,6 +174,10 @@ struct Document {
     contact_name: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL")]
     contact_email: Option<String>,
+    #[serde(rename = "AP_NAME")]
+    contact_name_ap: Option<String>,
+    #[serde(rename = "AP_EMAIL")]
+    contact_email_ap: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_NAME_RL1")]
     contact_name_rl1: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL1")]
