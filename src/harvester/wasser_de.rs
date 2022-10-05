@@ -12,6 +12,7 @@
 //! | LICENSE_NAME_LANG         |                    |                                                              |
 //! | RICHTLINIE_IDS            | tags               |                                                              |
 //! | URL                       | resource           |                                                              |
+//! | CONTENTTYPE               | resource.type      | Mime-type of the linked ressource, reduced to category       |
 //! | JAHR_VEROEFFENTLICHUNG    | issued             | http://purl.org/dc/terms/issued                              |
 //! | KOMMENTAR                 | comment            |                                                              |
 //! | LAST_CHECKED              | last_checked       | Last time the Wasser-DE staff checked this document          |
@@ -19,6 +20,8 @@
 //! | REGION_ID                 |                    |                                                              |
 //! | ANSPRECHPARTNER_NAME      | contact_names      |                                                              |
 //! | ANSPRECHPARTNER_EMAIL     | contact_emails     |                                                              |
+//! | AP_NAME                   | contact_names      |                                                              |
+//! | AP_EMAIL                  | contact_emails     |                                                              |
 //! | ANSPRECHPARTNER_NAME_RL1  | contact_names      |                                                              |
 //! | ANSPRECHPARTNER_EMAIL_RL1 | contact_emails     |                                                              |
 //! | ANSPRECHPARTNER_NAME_RL2  | contact_names      |                                                              |
@@ -105,6 +108,7 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
     };
 
     push_contact(document.contact_name, document.contact_email);
+    push_contact(document.contact_name_ap, document.contact_email_ap);
     push_contact(document.contact_name_rl1, document.contact_email_rl1);
     push_contact(document.contact_name_rl2, document.contact_email_rl2);
     push_contact(document.contact_name_rl3, document.contact_email_rl3);
@@ -122,7 +126,10 @@ async fn translate_dataset(dir: &Dir, source: &Source, document: Document) -> Re
         issued,
         last_checked,
         source_url: source.url.clone().into(),
-        resources: smallvec![Resource::unknown(document.url)],
+        resources: smallvec![Resource {
+            r#type: document.content_type.as_str().into(),
+            url: document.url
+        }],
     };
 
     write_dataset(dir, &document.id.to_string(), dataset).await
@@ -171,6 +178,10 @@ struct Document {
     contact_name: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL")]
     contact_email: Option<String>,
+    #[serde(rename = "AP_NAME")]
+    contact_name_ap: Option<String>,
+    #[serde(rename = "AP_EMAIL")]
+    contact_email_ap: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_NAME_RL1")]
     contact_name_rl1: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL1")]
@@ -187,6 +198,8 @@ struct Document {
     contact_name_rl4: Option<String>,
     #[serde(rename = "ANSPRECHPARTNER_EMAIL_RL4")]
     contact_email_rl4: Option<String>,
+    #[serde(rename = "CONTENTTYPE")]
+    content_type: String,
 }
 
 impl Document {
