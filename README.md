@@ -1,3 +1,5 @@
+This repository moved to [OpenCoDE](https://opencode.de): [https://gitlab.opencode.de/umwelt-info/metadaten](https://gitlab.opencode.de/umwelt-info/metadaten)
+
 # umwelt.info metadata index
 
 [![CI](https://github.com/adamreichold/umwelt-info/actions/workflows/ci.yml/badge.svg)](https://github.com/adamreichold/umwelt-info/actions/workflows/ci.yml)
