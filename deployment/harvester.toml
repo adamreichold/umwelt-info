@@ -1,4 +1,9 @@
 [[sources]]
+name = "manual"
+type = "manual"
+url = "file://localhost/usr/share/umwelt-info/manual_datasets.toml"
+
+[[sources]]
 name = "stadt-leipzig"
 type = "ckan"
 url = "https://opendata.leipzig.de/"

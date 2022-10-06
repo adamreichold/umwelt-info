@@ -39,6 +39,7 @@ fn harvester() -> Result<()> {
         ["run", "--bin", "harvester"],
         [
             ("DATA_PATH", "data"),
+            ("CONFIG_PATH", "deployment/harvester.toml"),
             ("RUST_LOG", "info,umwelt_info=debug,harvester=debug"),
         ],
     )?;
